@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="280" height="280" viewBox="0 0 280 280">
+  <defs>
+    <g id="longneck">
+      <path d="M8 30 Q-2 28 -6 18" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/>
+      <ellipse cx="22" cy="30" rx="17" ry="11" fill="currentColor"/>
+      <path d="M32 24 Q42 20 44 6" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/>
+      <ellipse cx="47" cy="5" rx="6" ry="4.5" fill="currentColor"/>
+      <rect x="11" y="35" width="6" height="10" rx="3" fill="currentColor"/>
+      <rect x="26" y="35" width="6" height="10" rx="3" fill="currentColor"/>
+      <circle cx="49" cy="3.5" r="1.1" fill="#5b5670"/>
+      <circle cx="18" cy="25" r="2.2" fill="#ffffff" opacity=".55"/>
+      <circle cx="26" cy="28" r="1.6" fill="#ffffff" opacity=".55"/>
+    </g>
+    <g id="spiky">
+      <path d="M10 20 L15 8 L20 19 L26 5 L32 18 L38 8 L41 20 Z" fill="currentColor" opacity=".7"/>
+      <path d="M4 28 Q-4 30 -8 24" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
+      <ellipse cx="24" cy="26" rx="20" ry="10" fill="currentColor"/>
+      <ellipse cx="46" cy="27" rx="7" ry="5.5" fill="currentColor"/>
+      <rect x="12" y="31" width="6" height="9" rx="3" fill="currentColor"/>
+      <rect x="30" y="31" width="6" height="9" rx="3" fill="currentColor"/>
+      <circle cx="48" cy="25.5" r="1.1" fill="#5b5670"/>
+    </g>
+    <g id="foot">
+      <ellipse cx="0" cy="4" rx="4" ry="5" fill="currentColor"/>
+      <ellipse cx="-5" cy="-4" rx="1.8" ry="3" transform="rotate(-25 -5 -4)" fill="currentColor"/>
+      <ellipse cx="0" cy="-6" rx="1.8" ry="3" fill="currentColor"/>
+      <ellipse cx="5" cy="-4" rx="1.8" ry="3" transform="rotate(25 5 -4)" fill="currentColor"/>
+    </g>
+    <path id="star" d="M0 -6 L1.8 -1.8 L6 0 L1.8 1.8 L0 6 L-1.8 1.8 L-6 0 L-1.8 -1.8 Z" fill="currentColor"/>
+  </defs>
+
+  <g opacity=".55">
+    <use href="#longneck" x="26" y="26" color="#b8e2c4"/>
+    <use href="#spiky" transform="translate(222 150) scale(-1 1)" color="#f6c6d8"/>
+    <use href="#longneck" transform="translate(40 196) scale(.8)" color="#bcd8f2"/>
+    <use href="#spiky" transform="translate(150 40) scale(.75)" color="#d9cdf3"/>
+
+    <use href="#foot" transform="translate(120 120) rotate(30)" color="#fbdca6"/>
+    <use href="#foot" transform="translate(140 104) rotate(30)" color="#fbdca6"/>
+    <use href="#foot" transform="translate(250 252) rotate(-20)" color="#b8e2c4"/>
+    <use href="#foot" transform="translate(232 238) rotate(-20)" color="#b8e2c4"/>
+
+    <use href="#star" x="110" y="200" color="#fbdca6"/>
+    <use href="#star" x="250" y="40" color="#bcd8f2"/>
+    <use href="#star" x="20" y="130" color="#f6c6d8"/>
+    <use href="#star" transform="translate(190 240) scale(.7)" color="#d9cdf3"/>
+    <circle cx="210" cy="100" r="2.5" fill="#bcd8f2"/>
+    <circle cx="90" cy="150" r="2" fill="#d9cdf3"/>
+    <circle cx="160" cy="270" r="2" fill="#f6c6d8"/>
+  </g>
+</svg>

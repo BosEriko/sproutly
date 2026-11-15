@@ -1,40 +1,108 @@
+@layer theme, base, antd, components, utilities;
+
 @import "tailwindcss";
 
-@custom-variant dark (@media (prefers-color-scheme: dark));
-
 :root {
-  --background: #f7f7f5;
-  --foreground: #171717;
-  --card: #ffffff;
-  --line: #e5e5e5;
-  --muted: #6b7280;
-  --accent: #16a34a;
+  color-scheme: light;
+  --background: #fbfaf8;
+  --paper: #ffffff;
+  --ink: #3b3a48;
+  --muted: #8b8798;
+  --line: #ece9f0;
+  --accent: #4f8a62;
+  --danger: #d0644f;
+  --warn: #c98a1b;
+  --tape-room: rgb(255 214 150 / 0.8);
+  --tape-fridge: rgb(185 220 245 / 0.85);
+  --tape-feeding: rgb(190 230 197 / 0.85);
+  --tape-spoiled: rgb(248 180 166 / 0.85);
+  --tape-neutral: rgb(241 214 228 / 0.85);
+  --shadow: 0 1px 1px rgb(70 60 100 / 0.05), 0 6px 16px rgb(70 60 100 / 0.08);
+  --shadow-lift: 0 2px 2px rgb(70 60 100 / 0.06), 0 14px 28px rgb(70 60 100 / 0.12);
 }
 
 @theme inline {
   --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-line: var(--line);
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
   --color-muted: var(--muted);
+  --color-line: var(--line);
   --color-accent: var(--accent);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-danger: var(--danger);
+  --color-warn: var(--warn);
+  --font-sans: var(--font-body);
+  --font-hand: var(--font-hand);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --card: #171717;
-    --line: #2a2a2a;
-    --muted: #9ca3af;
-    --accent: #16a34a;
+@layer base {
+  body {
+    background-color: var(--background);
+    background-image: url("/dino-pattern.svg");
+    background-size: 280px 280px;
+    color: var(--ink);
+    font-family: var(--font-body), system-ui, sans-serif;
+    min-height: 100dvh;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
+@layer components {
+  .paper {
+    position: relative;
+    background: var(--paper);
+    box-shadow: var(--shadow);
+    transition:
+      translate 200ms ease,
+      box-shadow 200ms ease;
+  }
+
+  .tape {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    width: 96px;
+    height: 26px;
+    translate: -50% 0;
+    rotate: -3deg;
+    background: var(--tape-neutral);
+    mask-image: linear-gradient(90deg, transparent 0 3px, #000 3px calc(100% - 3px), transparent calc(100% - 3px));
+    pointer-events: none;
+    transition: rotate 250ms ease;
+  }
+
+  .lift {
+    box-shadow: var(--shadow);
+  }
+
+  .ant-btn:not(:disabled):active {
+    scale: 0.97;
+  }
+
+  @media (hover: hover) {
+    .paper:hover,
+    .lift:not(:disabled):hover {
+      translate: 0 -3px;
+      box-shadow: var(--shadow-lift);
+    }
+
+    .paper:hover > .tape {
+      rotate: 1deg;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .paper,
+    .tape,
+    .ant-btn {
+      transition: none;
+    }
+
+    .paper:hover,
+    .lift:hover {
+      translate: none;
+    }
+
+    .ant-btn:active {
+      scale: none;
+    }
+  }
 }

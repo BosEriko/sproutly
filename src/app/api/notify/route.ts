@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import type { Timestamp } from "firebase-admin/firestore";
 import { BOTTLES_COLLECTION } from "@/lib/collections";
 import { adminAuth, adminDb } from "@/lib/firebaseAdmin";
-import { ACTION_LABELS, type Action, type Status } from "@/lib/spoil";
+import type { Action, EndReason, Status } from "@/lib/spoil";
 
 export const runtime = "nodejs";
 
@@ -15,11 +15,15 @@ const TITLES: Record<"made" | Action, string> = {
   discard: "🗑️ Discarded",
 };
 
-const STATUS_LABELS: Record<Status, string> = {
+const STATUS_LABELS: Record<Exclude<Status, "done">, string> = {
   room: "Room temperature",
   fridge: "In fridge",
   feeding: "Feeding",
-  done: "Done",
+};
+
+const END_LABELS: Record<EndReason, string> = {
+  finished: "Finished",
+  discarded: "Discarded",
 };
 
 const COLORS: Record<Status, number> = {
@@ -30,6 +34,27 @@ const COLORS: Record<Status, number> = {
 };
 
 const unix = (t: Timestamp) => Math.floor(t.toMillis() / 1000);
+
+async function postMessage(webhookUrl: string, body: object) {
+  const url = new URL(webhookUrl);
+  url.searchParams.set("wait", "true");
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) return null;
+  return ((await res.json()) as { id: string }).id;
+}
+
+async function editMessage(webhookUrl: string, messageId: string, body: object) {
+  const res = await fetch(`${webhookUrl}/messages/${messageId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  return res.ok;
+}
 
 export async function POST(req: NextRequest) {
   const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
@@ -50,16 +75,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { bottleId, action } = (await req.json()) as { bottleId?: string; action?: "made" | Action };
-  if (!bottleId || !action || !(action in TITLES)) {
-    return NextResponse.json({ error: "Bad request" }, { status: 400 });
-  }
+  const { bottleId } = (await req.json()) as { bottleId?: string };
+  if (!bottleId) return NextResponse.json({ error: "Bad request" }, { status: 400 });
 
-  const snap = await adminDb().collection(BOTTLES_COLLECTION).doc(bottleId).get();
+  const ref = adminDb().collection(BOTTLES_COLLECTION).doc(bottleId);
+  const snap = await ref.get();
   if (!snap.exists) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const bottle = snap.data()!;
   const status = bottle.status as Status;
-  const lastEvent = bottle.events?.[bottle.events.length - 1];
 
   const fields = [
     { name: "Made", value: `<t:${unix(bottle.madeAt)}:t> (<t:${unix(bottle.madeAt)}:R>)`, inline: true },
@@ -68,27 +91,30 @@ export async function POST(req: NextRequest) {
       value: bottle.spoilsAt ? `<t:${unix(bottle.spoilsAt)}:t> (<t:${unix(bottle.spoilsAt)}:R>)` : "—",
       inline: true,
     },
-    { name: "Status", value: STATUS_LABELS[status], inline: true },
-    { name: "By", value: lastEvent?.byName ?? "Unknown", inline: true },
   ];
 
-  const res = await fetch(webhookUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      embeds: [
-        {
-          title: TITLES[action],
-          description: action === "made" ? undefined : ACTION_LABELS[action as Action],
-          color: COLORS[status],
-          fields,
-          footer: { text: `Bottle ${bottleId}` },
-          timestamp: new Date().toISOString(),
-        },
-      ],
-    }),
-  });
+  const events = (bottle.events ?? []) as { type: "made" | Action; at: Timestamp }[];
+  const embed = {
+    title: `🍼 Bottle · ${status === "done" ? END_LABELS[bottle.endReason as EndReason] : STATUS_LABELS[status]}`,
+    description: events.map((e) => `${TITLES[e.type]} · <t:${unix(e.at)}:t>`).join("\n"),
+    color: COLORS[status],
+    fields,
+  };
 
-  if (!res.ok) return NextResponse.json({ error: "Discord rejected the message" }, { status: 502 });
+  const messageId = bottle.discordMessageId as string | undefined;
+  if (messageId && (await editMessage(webhookUrl, messageId, { embeds: [embed] }))) {
+    return NextResponse.json({ ok: true });
+  }
+
+  const avatarUrl = req.nextUrl.protocol === "https:" ? new URL("/app-icons/512", req.nextUrl.origin).href : undefined;
+
+  const newMessageId = await postMessage(webhookUrl, {
+    username: "Sproutly",
+    avatar_url: avatarUrl,
+    embeds: [embed],
+  });
+  if (!newMessageId) return NextResponse.json({ error: "Discord rejected the message" }, { status: 502 });
+
+  await ref.update({ discordMessageId: newMessageId });
   return NextResponse.json({ ok: true });
 }

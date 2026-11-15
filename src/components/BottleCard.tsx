@@ -1,13 +1,21 @@
 "use client";
 
+import { Button, Tag } from "antd";
+import { Clock } from "lucide-react";
 import { ACTION_LABELS, allowedActions, isExpired, type Action, type Status } from "@/lib/spoil";
 import type { Bottle } from "@/lib/bottles";
+import { ACTION_ICONS, STATUS_ICONS } from "./icons";
 
-const STATUS_LABELS: Record<Status, string> = {
-  room: "🌡️ Room temp",
-  fridge: "🧊 In fridge",
-  feeding: "👶 Feeding",
-  done: "Done",
+const STATUS_LABELS: Record<Exclude<Status, "done">, string> = {
+  room: "Room temp",
+  fridge: "In fridge",
+  feeding: "Feeding",
+};
+
+const TAPE: Record<Exclude<Status, "done">, string> = {
+  room: "var(--tape-room)",
+  fridge: "var(--tape-fridge)",
+  feeding: "var(--tape-feeding)",
 };
 
 const WARNING_MS = 30 * 60 * 1000;
@@ -29,53 +37,64 @@ export function BottleCard({
   bottle,
   now,
   busy,
+  tilt,
   onAction,
 }: {
   bottle: Bottle;
   now: number;
   busy: boolean;
+  tilt: number;
   onAction: (action: Action) => void;
 }) {
+  if (bottle.status === "done") return null;
+
   const expired = isExpired(bottle, now);
   const remaining = (bottle.spoilsAt ?? now) - now;
-  const tone = expired
-    ? "border-red-500 bg-red-500/10"
-    : remaining <= WARNING_MS
-      ? "border-amber-500 bg-amber-500/10"
-      : "border-emerald-500 bg-emerald-500/10";
-  const countdownTone = expired ? "text-red-500" : remaining <= WARNING_MS ? "text-amber-500" : "text-emerald-500";
+  const warning = !expired && remaining <= WARNING_MS;
+  const countdownColor = expired ? "text-danger" : warning ? "text-warn" : "text-accent";
+  const StatusIcon = STATUS_ICONS[bottle.status];
 
   return (
-    <article className={`rounded-2xl border-2 p-4 ${tone}`}>
-      <div className="flex items-center justify-between text-sm">
-        <span className="font-medium">{STATUS_LABELS[bottle.status]}</span>
-        <span className="text-muted">Made {formatTime(bottle.madeAt)}</span>
+    <article className="paper rounded-sm px-5 pt-7 pb-5" style={{ rotate: `${tilt}deg` }}>
+      <span className="tape" style={{ background: expired ? "var(--tape-spoiled)" : TAPE[bottle.status] }} />
+
+      <div className="flex items-center justify-between">
+        <Tag icon={<StatusIcon size={13} aria-hidden className="mr-1 inline align-[-2px]" />} bordered={false}>
+          {STATUS_LABELS[bottle.status]}
+        </Tag>
+        <span className="text-sm text-muted">Made {formatTime(bottle.madeAt)}</span>
       </div>
 
-      <div className="my-3 text-center">
-        <p className={`font-mono text-5xl font-bold tabular-nums ${countdownTone}`}>
+      <div className="my-2 text-center">
+        <p className={`font-hand text-7xl leading-none font-bold tabular-nums ${countdownColor}`}>
           {expired ? "Spoiled" : formatCountdown(remaining)}
         </p>
         {bottle.spoilsAt && (
-          <p className="mt-1 text-sm text-muted">
+          <p className="mt-1 flex items-center justify-center gap-1 text-sm text-muted">
+            <Clock size={13} aria-hidden />
             {expired ? "Spoiled at" : "Spoils at"} {formatTime(bottle.spoilsAt)}
           </p>
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        {allowedActions(bottle, now).map((action) => (
-          <button
-            key={action}
-            disabled={busy}
-            onClick={() => onAction(action)}
-            className={`rounded-xl px-3 py-3 text-sm font-semibold disabled:opacity-50 ${
-              action === "discard" ? "bg-red-500/15 text-red-600 dark:text-red-400" : "bg-card border border-line"
-            } ${expired ? "col-span-2" : ""}`}
-          >
-            {ACTION_LABELS[action]}
-          </button>
-        ))}
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        {allowedActions(bottle, now).map((action) => {
+          const Icon = ACTION_ICONS[action];
+          return (
+            <Button
+              key={action}
+              size="large"
+              disabled={busy}
+              danger={action === "discard"}
+              type={expired ? "primary" : "default"}
+              icon={<Icon size={16} aria-hidden />}
+              onClick={() => onAction(action)}
+              className={expired ? "col-span-2" : undefined}
+            >
+              {ACTION_LABELS[action]}
+            </Button>
+          );
+        })}
       </div>
     </article>
   );

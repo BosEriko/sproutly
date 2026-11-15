@@ -17,5 +17,12 @@ service cloud.firestore {
         && resource.data.status != 'done';
       allow delete: if false;
     }
+
+    match /apps/sproutly/profile/baby {
+      allow read: if isAllowed();
+      allow write: if isAllowed()
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 60;
+    }
   }
 }

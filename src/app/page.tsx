@@ -2,11 +2,18 @@
 
 import { useEffect, useState } from "react";
 import type { User } from "firebase/auth";
+import { Alert, Button, Empty, Spin } from "antd";
+import { Milk, Sprout } from "lucide-react";
 import { AuthGate } from "@/components/AuthGate";
+import { BabyCard } from "@/components/BabyCard";
+import { BabyDrawer } from "@/components/BabyDrawer";
 import { BottleCard } from "@/components/BottleCard";
+import { END_ICONS } from "@/components/icons";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import type { BabyProfile } from "@/lib/baby";
 import { createBottle, subscribeBottles, updateBottle, type Bottle } from "@/lib/bottles";
 import { notifyDiscord } from "@/lib/notify";
+import { subscribeProfile } from "@/lib/profile";
 import type { Action } from "@/lib/spoil";
 
 function useNow(intervalMs = 1000) {
@@ -27,9 +34,16 @@ function Tracker({ user }: { user: User }) {
   const [bottles, setBottles] = useState<Bottle[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [profile, setProfile] = useState<BabyProfile | null | undefined>(undefined);
+  const [editingProfile, setEditingProfile] = useState(false);
 
   useEffect(
     () => subscribeBottles(setBottles, (e) => setError(e.message)),
+    [],
+  );
+
+  useEffect(
+    () => subscribeProfile(setProfile, (e) => setError(e.message)),
     [],
   );
 
@@ -48,57 +62,81 @@ function Tracker({ user }: { user: User }) {
   const handleMade = () =>
     run(async () => {
       const id = await createBottle(user);
-      void notifyDiscord(user, id, "made");
+      await notifyDiscord(user, id);
     });
 
   const handleAction = (id: string, action: Action) =>
     run(async () => {
       await updateBottle(id, action, user);
-      void notifyDiscord(user, id, action);
+      await notifyDiscord(user, id);
     });
 
   const active = bottles?.filter((b) => b.status !== "done") ?? [];
   const history = bottles?.filter((b) => b.status === "done").slice(0, 10) ?? [];
 
   return (
-    <main className="mx-auto flex max-w-lg flex-col gap-5 px-4 pt-6">
-      <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">🌱 Sproutly</h1>
+    <main className="mx-auto flex max-w-lg flex-col gap-6 px-4 pt-6 pb-[calc(3rem+env(safe-area-inset-bottom))]">
+      <header className="flex items-center gap-2 text-accent">
+        <Sprout size={30} strokeWidth={2.25} aria-hidden />
+        <h1 className="font-hand text-4xl font-bold">Sproutly</h1>
       </header>
 
-      <button
-        onClick={handleMade}
-        disabled={busy}
-        className="rounded-3xl bg-accent px-6 py-8 text-2xl font-bold text-white shadow-lg active:scale-[0.98] disabled:opacity-50"
-      >
-        🍼 Made milk
-      </button>
+      {profile !== undefined && (
+        <BabyCard profile={profile} now={now} onEdit={() => setEditingProfile(true)} />
+      )}
 
-      {error && <p className="rounded-xl bg-red-500/10 p-3 text-sm text-red-500">{error}</p>}
+      <Button
+        type="primary"
+        size="large"
+        block
+        loading={busy}
+        icon={<Milk size={30} aria-hidden />}
+        onClick={handleMade}
+        className="lift h-24! rotate-[-0.6deg] rounded-sm! font-hand text-4xl!"
+      >
+        Made milk
+      </Button>
+
+      {error && <Alert type="error" title={error} showIcon />}
 
       {bottles === null ? (
-        <p className="text-center text-muted">Loading bottles…</p>
+        <div className="flex justify-center py-8">
+          <Spin />
+        </div>
       ) : active.length === 0 ? (
-        <p className="text-center text-muted">No active bottles.</p>
+        <div className="paper rotate-[0.8deg] rounded-sm py-6">
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No bottles going right now" />
+        </div>
       ) : (
-        <section className="flex flex-col gap-4">
-          {active.map((b) => (
-            <BottleCard key={b.id} bottle={b} now={now} busy={busy} onAction={(a) => handleAction(b.id, a)} />
+        <section className="flex flex-col gap-8 pt-2">
+          {active.map((b, i) => (
+            <BottleCard
+              key={b.id}
+              bottle={b}
+              now={now}
+              busy={busy}
+              tilt={i % 2 === 0 ? -0.8 : 0.8}
+              onAction={(a) => handleAction(b.id, a)}
+            />
           ))}
         </section>
       )}
 
       {history.length > 0 && (
-        <section>
-          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted">Recent</h2>
-          <ul className="divide-y divide-line rounded-2xl border border-line bg-card">
+        <section className="paper mt-2 -rotate-[0.5deg] rounded-sm px-5 pt-8 pb-3">
+          <span className="tape" />
+          <h2 className="font-hand text-3xl font-bold leading-[44px]">Recent</h2>
+          <ul className="divide-y divide-line">
             {history.map((b) => {
               const last = b.events[b.events.length - 1];
+              const discarded = b.endReason === "discarded";
+              const EndIcon = END_ICONS[discarded ? "discarded" : "finished"];
               return (
-                <li key={b.id} className="flex items-center justify-between px-4 py-3 text-sm">
+                <li key={b.id} className="flex h-11 items-center justify-between text-sm">
                   <span>Made {formatDateTime(b.madeAt)}</span>
-                  <span className="text-muted">
-                    {b.endReason === "discarded" ? "🗑️ Discarded" : "✅ Finished"}
+                  <span className={`flex items-center gap-1 ${discarded ? "text-danger" : "text-muted"}`}>
+                    <EndIcon size={14} aria-hidden />
+                    {discarded ? "Discarded" : "Finished"}
                     {last ? ` · ${new Date(last.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : ""}
                   </span>
                 </li>
@@ -107,6 +145,7 @@ function Tracker({ user }: { user: User }) {
           </ul>
         </section>
       )}
+      <BabyDrawer open={editingProfile} profile={profile ?? null} onClose={() => setEditingProfile(false)} />
     </main>
   );
 }

@@ -19,7 +19,7 @@ export function appIcon({
           width: "100%",
           height: "100%",
           display: "flex",
-          background: "#16a34a",
+          background: "#5f8a52",
           borderRadius: rounded ? size / 4 : 0,
           position: "relative",
         }}

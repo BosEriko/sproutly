@@ -1,5 +1,7 @@
 "use client";
 
+import { Button } from "antd";
+import { Share } from "lucide-react";
 import Image from "next/image";
 import { useState, useSyncExternalStore } from "react";
 import { canPromptInstall, HANDHELD, INSTALL_CHANGE, takeInstallEvent } from "@/lib/install-prompt";
@@ -58,30 +60,6 @@ function subscribe(onChange: () => void) {
   };
 }
 
-function ShareIcon() {
-  return (
-    <svg
-      aria-hidden
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="inline align-[-2px]"
-    >
-      <path d="M12 2v13" />
-      <path d="m16 6-4-4-4 4" />
-      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-    </svg>
-  );
-}
-
-const secondaryButton = "rounded-xl px-4 py-2 text-sm font-semibold text-muted";
-const primaryButton = "rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white";
-
 export function InstallPrompt() {
   const mode = useSyncExternalStore(subscribe, readMode, () => "none" as Mode);
   const [steps, setSteps] = useState(false);
@@ -107,7 +85,7 @@ export function InstallPrompt() {
   return (
     <section
       aria-label="Install Sproutly"
-      className="fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-40 mx-auto flex max-w-md flex-col gap-3 rounded-2xl border border-line bg-card p-4 shadow-xl transition duration-300 ease-out motion-reduce:transition-none starting:translate-y-6 starting:opacity-0"
+      className="fixed inset-x-3 bottom-[calc(0.75rem+env(safe-area-inset-bottom))] z-40 mx-auto flex max-w-md flex-col gap-3 paper rounded-sm p-4 transition duration-300 ease-out motion-reduce:transition-none starting:translate-y-6 starting:opacity-0"
     >
       <div className="flex items-start gap-3">
         <Image
@@ -128,7 +106,7 @@ export function InstallPrompt() {
       {steps && (
         <ol className="flex list-decimal flex-col gap-1.5 rounded-lg bg-background/60 py-3 pr-3 pl-8 text-[13px]">
           <li>
-            Tap <ShareIcon /> <strong>Share</strong> in your browser. In Safari, it may be under the{" "}
+            Tap <Share size={14} aria-hidden className="inline align-[-2px]" /> <strong>Share</strong> in your browser. In Safari, it may be under the{" "}
             <strong>⋯</strong> button.
           </li>
           <li>
@@ -140,17 +118,17 @@ export function InstallPrompt() {
         </ol>
       )}
       <div className="flex justify-end gap-2">
-        <button className={secondaryButton} onClick={() => hideFor(SNOOZE_DAYS)}>
+        <Button type="text" onClick={() => hideFor(SNOOZE_DAYS)}>
           Not now
-        </button>
+        </Button>
         {steps ? (
-          <button className={primaryButton} onClick={() => hideFor(INSTALLED_DAYS)}>
+          <Button type="primary" onClick={() => hideFor(INSTALLED_DAYS)}>
             Done
-          </button>
+          </Button>
         ) : (
-          <button className={primaryButton} onClick={install}>
+          <Button type="primary" onClick={install}>
             Install
-          </button>
+          </Button>
         )}
       </div>
     </section>

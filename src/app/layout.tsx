@@ -1,16 +1,18 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Caveat, Nunito } from "next/font/google";
 import { installScript } from "@/lib/install-prompt";
+import { AntdProvider } from "./antd-provider";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const body = Nunito({
+  variable: "--font-body",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const hand = Caveat({
+  variable: "--font-hand",
   subsets: ["latin"],
+  weight: ["500", "700"],
 });
 
 export const metadata: Metadata = {
@@ -23,7 +25,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#16a34a",
+  themeColor: "#fbfaf8",
 };
 
 export default function RootLayout({
@@ -36,10 +38,8 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: installScript }} />
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
+      <body className={`${body.variable} ${hand.variable} antialiased`}>
+        <AntdProvider>{children}</AntdProvider>
       </body>
     </html>
   );
