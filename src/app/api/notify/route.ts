@@ -1,8 +1,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type { Timestamp } from "firebase-admin/firestore";
-import { ACCESS_CLAIM } from "@/lib/access";
+import { authorize } from "@/lib/authorize";
 import { BOTTLES_COLLECTION } from "@/lib/collections";
-import { adminAuth, adminDb } from "@/lib/firebaseAdmin";
+import { editMessage, postMessage, webhookIdentity } from "@/lib/discord";
+import { adminDb } from "@/lib/firebaseAdmin";
 import type { Action, EndReason, Status } from "@/lib/spoil";
 
 export const runtime = "nodejs";
@@ -36,41 +37,12 @@ const COLORS: Record<Status, number> = {
 
 const unix = (t: Timestamp) => Math.floor(t.toMillis() / 1000);
 
-async function postMessage(webhookUrl: string, body: object) {
-  const url = new URL(webhookUrl);
-  url.searchParams.set("wait", "true");
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) return null;
-  return ((await res.json()) as { id: string }).id;
-}
-
-async function editMessage(webhookUrl: string, messageId: string, body: object) {
-  const res = await fetch(`${webhookUrl}/messages/${messageId}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  return res.ok;
-}
-
 export async function POST(req: NextRequest) {
   const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
   if (!webhookUrl) return NextResponse.json({ error: "Webhook not configured" }, { status: 500 });
 
-  const token = req.headers.get("authorization")?.replace(/^Bearer /, "");
-  if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  let allowed = false;
-  try {
-    allowed = (await adminAuth().verifyIdToken(token))[ACCESS_CLAIM] === true;
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const denied = await authorize(req);
+  if (denied) return denied;
 
   const { bottleId } = (await req.json()) as { bottleId?: string };
   if (!bottleId) return NextResponse.json({ error: "Bad request" }, { status: 400 });
@@ -103,13 +75,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  const avatarUrl = req.nextUrl.protocol === "https:" ? new URL("/app-icons/512", req.nextUrl.origin).href : undefined;
-
-  const newMessageId = await postMessage(webhookUrl, {
-    username: "Sproutly",
-    avatar_url: avatarUrl,
-    embeds: [embed],
-  });
+  const newMessageId = await postMessage(webhookUrl, { ...webhookIdentity(req), embeds: [embed] });
   if (!newMessageId) return NextResponse.json({ error: "Discord rejected the message" }, { status: 502 });
 
   await ref.update({ discordMessageId: newMessageId });

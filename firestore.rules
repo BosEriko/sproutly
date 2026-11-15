@@ -18,6 +18,11 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /apps/sproutly/diapers/{changeId} {
+      allow read: if isAllowed();
+      allow write: if false;
+    }
+
     match /apps/sproutly/profile/baby {
       allow read: if isAllowed();
       allow write: if isAllowed()

@@ -17,6 +17,10 @@
   --tape-feeding: rgb(190 230 197 / 0.85);
   --tape-spoiled: rgb(248 180 166 / 0.85);
   --tape-neutral: rgb(241 214 228 / 0.85);
+  --sticky-mint: #bfe6cb;
+  --sticky-blue: #c4def6;
+  --sticky-yellow: #fde7a9;
+  --sticky-pink: #f8cddf;
   --shadow: 0 1px 1px rgb(70 60 100 / 0.05), 0 6px 16px rgb(70 60 100 / 0.08);
   --shadow-lift: 0 2px 2px rgb(70 60 100 / 0.06), 0 14px 28px rgb(70 60 100 / 0.12);
 }
@@ -69,8 +73,53 @@
     transition: rotate 250ms ease;
   }
 
-  .lift {
-    box-shadow: var(--shadow);
+  .sticky.sticky {
+    border-color: transparent;
+    border-radius: 2px 2px 32px 2px / 2px 2px 4px 2px;
+    color: var(--ink);
+    background: linear-gradient(
+      175deg,
+      color-mix(in srgb, var(--sticky) 85%, #ffffff) 0%,
+      var(--sticky) 60%,
+      color-mix(in srgb, var(--sticky) 97%, #000000) 100%
+    );
+    box-shadow:
+      0 1px 1px rgb(60 50 80 / 0.06),
+      0 3px 5px -2px rgb(60 50 80 / 0.1),
+      6px 8px 8px -7px rgb(60 50 80 / 0.22);
+    transition:
+      translate 200ms ease,
+      box-shadow 200ms ease,
+      scale 120ms ease,
+      filter 200ms ease;
+  }
+
+  .sticky.sticky:disabled {
+    filter: saturate(0.5) opacity(0.7);
+  }
+
+  @media (hover: hover) {
+    .sticky.sticky:not(:disabled):hover {
+      translate: 0 -2px;
+      color: var(--ink);
+      background: linear-gradient(
+        175deg,
+        color-mix(in srgb, var(--sticky) 75%, #ffffff) 0%,
+        color-mix(in srgb, var(--sticky) 92%, #ffffff) 60%,
+        var(--sticky) 100%
+      );
+      box-shadow:
+        0 1px 1px rgb(60 50 80 / 0.06),
+        0 5px 8px -3px rgb(60 50 80 / 0.12),
+        7px 11px 10px -8px rgb(60 50 80 / 0.26);
+    }
+  }
+
+  .sticky.sticky:not(:disabled):active {
+    translate: 0 1px;
+    box-shadow:
+      0 1px 1px rgb(60 50 80 / 0.08),
+      3px 4px 5px -4px rgb(60 50 80 / 0.2);
   }
 
   .ant-btn:not(:disabled):active {
@@ -78,8 +127,7 @@
   }
 
   @media (hover: hover) {
-    .paper:hover,
-    .lift:not(:disabled):hover {
+    .paper:hover {
       translate: 0 -3px;
       box-shadow: var(--shadow-lift);
     }
@@ -139,12 +187,14 @@
 
     .paper,
     .tape,
-    .ant-btn {
+    .ant-btn,
+    .sticky.sticky {
       transition: none;
     }
 
     .paper:hover,
-    .lift:hover {
+    .sticky.sticky:hover,
+    .sticky.sticky:active {
       translate: none;
     }
 

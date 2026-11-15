@@ -96,3 +96,14 @@ export function subscribeBottles(
     onError,
   );
 }
+
+export async function deleteDiscardedBottle(id: string, user: User): Promise<void> {
+  const res = await fetch(`/api/bottles/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${await user.getIdToken()}` },
+  });
+  if (!res.ok) {
+    const { error } = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(error ?? "Could not delete the bottle");
+  }
+}

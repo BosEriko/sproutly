@@ -1,0 +1,88 @@
+"use client";
+
+import { AlarmClock } from "lucide-react";
+import { ageInDays, type BabyProfile } from "@/lib/baby";
+import type { Bottle } from "@/lib/bottles";
+import { estimateNextFeeding, feedingInterval, lastFedAt } from "@/lib/feeding";
+
+const MINUTE = 60 * 1000;
+
+function formatTime(ms: number) {
+  return new Date(ms).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+function formatDuration(ms: number) {
+  const minutes = Math.max(1, Math.round(ms / MINUTE));
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h === 0) return `${m}m`;
+  return m ? `${h}h ${m}m` : `${h}h`;
+}
+
+function Shell({ children }: { children: React.ReactNode }) {
+  return (
+    <section className="paper -rotate-[0.6deg] rounded-sm px-5 pt-7 pb-4">
+      <span className="tape" style={{ background: "rgb(217 205 243 / 0.85)" }} />
+      <h2 className="flex items-center gap-2 text-sm font-semibold text-muted">
+        <AlarmClock size={15} aria-hidden />
+        Next feeding
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+export function NextFeedingCard({ profile, bottles, now }: { profile: BabyProfile | null; bottles: Bottle[]; now: number }) {
+  const name = profile?.name || "your baby";
+
+  if (!profile?.birthday) {
+    return (
+      <Shell>
+        <p className="mt-2 text-muted">Add {name}&apos;s birthday to see when the next feeding is likely.</p>
+      </Shell>
+    );
+  }
+
+  const lastFed = lastFedAt(bottles);
+  if (lastFed === null) {
+    return (
+      <Shell>
+        <p className="mt-2 text-muted">
+          Tap <strong>Started feeding</strong> on a bottle and the next feeding time will show here.
+        </p>
+      </Shell>
+    );
+  }
+
+  const ageDays = ageInDays(profile.birthday, new Date(now));
+  const { minHours, maxHours } = feedingInterval(ageDays);
+  const { from, to } = estimateNextFeeding(lastFed, ageDays);
+
+  let headline: string;
+  let detail: string;
+  let tone: string;
+  if (now < from) {
+    headline = `in ${formatDuration(from - now)}`;
+    detail = `Likely hungry around ${formatTime(from)}–${formatTime(to)}`;
+    tone = "text-accent";
+  } else if (now < to) {
+    headline = "Any time now";
+    detail = `Usually by ${formatTime(to)}`;
+    tone = "text-warn";
+  } else {
+    headline = "Due now";
+    detail = `Last fed ${formatDuration(now - lastFed)} ago`;
+    tone = "text-danger";
+  }
+
+  return (
+    <Shell>
+      <p className={`mt-1 font-hand text-5xl leading-tight font-bold ${tone}`}>{headline}</p>
+      <p>{detail}</p>
+      <p className="mt-2 text-xs text-muted">
+        Last fed {formatTime(lastFed)} · every {minHours}–{maxHours} hours is typical at {name}&apos;s age. Hunger cues come
+        first; this is only a guide.
+      </p>
+    </Shell>
+  );
+}

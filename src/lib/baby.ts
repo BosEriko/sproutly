@@ -16,6 +16,11 @@ function parseDate(value: string) {
   return new Date(y, m - 1, d);
 }
 
+export function ageInDays(birthday: string, now: Date): number {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((today.getTime() - parseDate(birthday).getTime()) / DAY_MS);
+}
+
 export function ageLabel(birthday: string, now: Date): string {
   const born = parseDate(birthday);
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());

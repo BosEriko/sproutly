@@ -1,18 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import type { User } from "firebase/auth";
-import { Alert, Button, Empty } from "antd";
-import { Milk, Sprout } from "lucide-react";
+import { Alert, Button, Popconfirm } from "antd";
+import { Milk, Sprout, X } from "lucide-react";
 import { AuthGate } from "@/components/AuthGate";
 import { BabyCard } from "@/components/BabyCard";
 import { BabyDrawer } from "@/components/BabyDrawer";
 import { BottleCard } from "@/components/BottleCard";
+import { DiaperCard } from "@/components/DiaperCard";
 import { DinoLoader } from "@/components/DinoLoader";
 import { END_ICONS } from "@/components/icons";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { NextFeedingCard } from "@/components/NextFeedingCard";
 import type { BabyProfile } from "@/lib/baby";
-import { createBottle, subscribeBottles, updateBottle, type Bottle } from "@/lib/bottles";
+import { createBottle, deleteDiscardedBottle, subscribeBottles, updateBottle, type Bottle } from "@/lib/bottles";
 import { notifyDiscord } from "@/lib/notify";
 import { subscribeProfile } from "@/lib/profile";
 import type { Action } from "@/lib/spoil";
@@ -72,6 +74,8 @@ function Tracker({ user }: { user: User }) {
       await notifyDiscord(user, id);
     });
 
+  const handleDelete = (id: string) => run(() => deleteDiscardedBottle(id, user));
+
   const active = bottles?.filter((b) => b.status !== "done") ?? [];
   const history = bottles?.filter((b) => b.status === "done").slice(0, 10) ?? [];
 
@@ -93,7 +97,8 @@ function Tracker({ user }: { user: User }) {
         loading={busy}
         icon={<Milk size={30} aria-hidden />}
         onClick={handleMade}
-        className="lift h-24! rotate-[-0.6deg] rounded-sm! font-hand text-4xl!"
+        className="sticky h-24! rotate-[-0.6deg] font-hand text-4xl!"
+        style={{ "--sticky": "var(--sticky-mint)" } as CSSProperties}
       >
         Made milk
       </Button>
@@ -103,9 +108,7 @@ function Tracker({ user }: { user: User }) {
       {bottles === null ? (
         <DinoLoader label="Finding bottles…" />
       ) : active.length === 0 ? (
-        <div className="paper rotate-[0.8deg] rounded-sm py-6">
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No bottles going right now" />
-        </div>
+        profile !== undefined && <NextFeedingCard profile={profile} bottles={bottles} now={now} />
       ) : (
         <section className="flex flex-col gap-8 pt-2">
           {active.map((b, i) => (
@@ -121,6 +124,8 @@ function Tracker({ user }: { user: User }) {
         </section>
       )}
 
+      <DiaperCard user={user} now={now} />
+
       {history.length > 0 && (
         <section className="paper mt-2 -rotate-[0.5deg] rounded-sm px-5 pt-8 pb-3">
           <span className="tape" />
@@ -134,6 +139,24 @@ function Tracker({ user }: { user: User }) {
                 <li key={b.id} className="flex h-11 items-center justify-between text-sm">
                   <span>Made {formatDateTime(b.madeAt)}</span>
                   <span className={`flex items-center gap-1 ${discarded ? "text-danger" : "text-muted"}`}>
+                    {discarded && (
+                      <Popconfirm
+                        title="Delete this bottle?"
+                        description="This also removes its Discord card."
+                        okText="Delete"
+                        okButtonProps={{ danger: true }}
+                        onConfirm={() => handleDelete(b.id)}
+                      >
+                        <Button
+                          type="text"
+                          size="small"
+                          shape="circle"
+                          disabled={busy}
+                          aria-label="Delete discarded bottle"
+                          icon={<X size={14} aria-hidden />}
+                        />
+                      </Popconfirm>
+                    )}
                     <EndIcon size={14} aria-hidden />
                     {discarded ? "Discarded" : "Finished"}
                     {last ? ` · ${new Date(last.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : ""}
