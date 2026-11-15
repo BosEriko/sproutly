@@ -17,12 +17,12 @@ Once a bottle spoils, the only option is **Discard**.
 
 1. **Firebase project** at https://console.firebase.google.com
    - Add a Web app and copy its config into `NEXT_PUBLIC_FIREBASE_*`.
-   - Authentication → enable **Email/Password**, then add a user for each parent. Copy their UIDs.
+   - Authentication → enable **Email/Password**, then add the one user that will sign in.
    - Firestore → create a database.
    - Project settings → Service accounts → generate a private key. Copy `project_id`, `client_email` and `private_key` into `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL` and `FIREBASE_PRIVATE_KEY`.
-2. **Security rules**: put both UIDs into `firestore.rules`, and put the project ID into `.firebaserc` and `.github/workflows/deploy-firestore-rules.yml` in place of `REPLACE_WITH_FIREBASE_PROJECT_ID`. Run `npx firebase-tools login:ci` and save the token as the `FIREBASE_TOKEN` GitHub secret. From then on, every push to `main` that changes `firestore.rules`, `firestore.indexes.json` or `firebase.json` deploys them.
+2. **Security rules**: the project is `boseriko-apps` (set in `.firebaserc` and the deploy workflow). Run `npx firebase-tools login:ci` and save the token as the `FIREBASE_TOKEN` GitHub secret. Add the allowed email as the `ALLOWED_EMAIL` GitHub secret; the workflow writes it into `firestore.rules` in place of `REPLACE_WITH_ALLOWED_EMAIL` before deploying. From then on, every push to `main` that changes `firestore.rules`, `firestore.indexes.json` or `firebase.json` deploys them.
 3. **Discord**: Channel settings → Integrations → Webhooks → New webhook. Copy the URL into `DISCORD_WEBHOOK_URL`.
-4. Copy `example.env` to `.env.local` and replace each `XXXX` with a real value. Set `ALLOWED_UIDS` to the two UIDs, separated by a comma.
+4. Copy `example.env` to `.env.local` and replace each `XXXX` with a real value. Use the same `ALLOWED_EMAIL` as the GitHub secret.
 
 ## Run
 

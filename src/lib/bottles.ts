@@ -11,6 +11,7 @@ import {
   type DocumentData,
 } from "firebase/firestore";
 import type { User } from "firebase/auth";
+import { BOTTLES_COLLECTION } from "./collections";
 import { clientDb } from "./firebase";
 import { applyAction, newBottle, type Action, type BottleState } from "./spoil";
 
@@ -28,8 +29,6 @@ export interface Bottle extends BottleState {
   createdBy: string;
   events: BottleEvent[];
 }
-
-const COLLECTION = "bottles";
 
 function toBottle(id: string, data: DocumentData): Bottle {
   return {
@@ -66,7 +65,7 @@ function eventFor(type: EventType, user: User, at: number): BottleEvent {
 
 export async function createBottle(user: User): Promise<string> {
   const now = Date.now();
-  const ref = await addDoc(collection(clientDb(), COLLECTION), {
+  const ref = await addDoc(collection(clientDb(), BOTTLES_COLLECTION), {
     ...toDoc(newBottle(now), [eventFor("made", user, now)]),
     createdBy: user.uid,
   });
@@ -75,7 +74,7 @@ export async function createBottle(user: User): Promise<string> {
 
 export async function updateBottle(id: string, action: Action, user: User): Promise<void> {
   const db = clientDb();
-  const ref = doc(db, COLLECTION, id);
+  const ref = doc(db, BOTTLES_COLLECTION, id);
   await runTransaction(db, async (tx) => {
     const snap = await tx.get(ref);
     if (!snap.exists()) throw new Error("Bottle not found");
@@ -90,7 +89,7 @@ export function subscribeBottles(
   onChange: (bottles: Bottle[]) => void,
   onError: (error: Error) => void,
 ): () => void {
-  const q = query(collection(clientDb(), COLLECTION), orderBy("madeAt", "desc"), limit(20));
+  const q = query(collection(clientDb(), BOTTLES_COLLECTION), orderBy("madeAt", "desc"), limit(20));
   return onSnapshot(
     q,
     (snap) => onChange(snap.docs.map((d) => toBottle(d.id, d.data()))),

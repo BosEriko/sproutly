@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type { Timestamp } from "firebase-admin/firestore";
+import { BOTTLES_COLLECTION } from "@/lib/collections";
 import { adminAuth, adminDb } from "@/lib/firebaseAdmin";
 import { ACTION_LABELS, type Action, type Status } from "@/lib/spoil";
 
@@ -37,22 +38,24 @@ export async function POST(req: NextRequest) {
   const token = req.headers.get("authorization")?.replace(/^Bearer /, "");
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  let uid: string;
+  let email: string | undefined;
   try {
-    uid = (await adminAuth().verifyIdToken(token)).uid;
+    email = (await adminAuth().verifyIdToken(token)).email;
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const allowed = (process.env.ALLOWED_UIDS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
-  if (!allowed.includes(uid)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const allowedEmail = process.env.ALLOWED_EMAIL?.trim().toLowerCase();
+  if (!allowedEmail || email?.toLowerCase() !== allowedEmail) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const { bottleId, action } = (await req.json()) as { bottleId?: string; action?: "made" | Action };
   if (!bottleId || !action || !(action in TITLES)) {
     return NextResponse.json({ error: "Bad request" }, { status: 400 });
   }
 
-  const snap = await adminDb().collection("bottles").doc(bottleId).get();
+  const snap = await adminDb().collection(BOTTLES_COLLECTION).doc(bottleId).get();
   if (!snap.exists) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const bottle = snap.data()!;
   const status = bottle.status as Status;
