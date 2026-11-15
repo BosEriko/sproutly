@@ -89,7 +89,54 @@
     }
   }
 
+  .dino-hop {
+    animation: dino-hop 0.9s ease-in-out infinite;
+  }
+
+  .dino-head {
+    transform-box: fill-box;
+    transform-origin: 0% 100%;
+    animation: dino-nod 0.9s ease-in-out infinite;
+  }
+
+  .dino-tail {
+    transform-box: fill-box;
+    transform-origin: 100% 0%;
+    animation: dino-wag 0.45s ease-in-out infinite alternate;
+  }
+
+  .dino-shadow {
+    animation: dino-shadow 0.9s ease-in-out infinite;
+  }
+
+  @keyframes dino-hop {
+    0%, 100% { translate: 0 0; }
+    50% { translate: 0 -14px; }
+  }
+
+  @keyframes dino-nod {
+    0%, 100% { rotate: 0deg; }
+    50% { rotate: -8deg; }
+  }
+
+  @keyframes dino-wag {
+    from { rotate: -6deg; }
+    to { rotate: 8deg; }
+  }
+
+  @keyframes dino-shadow {
+    0%, 100% { scale: 1; opacity: 1; }
+    50% { scale: 0.7; opacity: 0.5; }
+  }
+
   @media (prefers-reduced-motion: reduce) {
+    .dino-hop,
+    .dino-head,
+    .dino-tail,
+    .dino-shadow {
+      animation: none;
+    }
+
     .paper,
     .tape,
     .ant-btn {

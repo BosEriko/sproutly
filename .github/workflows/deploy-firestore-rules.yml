@@ -25,4 +25,4 @@ jobs:
 
       - run: npx --yes firebase-tools deploy --only firestore --project boseriko-apps --non-interactive --token "$FIREBASE_TOKEN"
         env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_LOGIN_TOKEN }}

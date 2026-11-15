@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { Alert, Button, Form, Input, Spin } from "antd";
+import { Alert, Button, Form, Input } from "antd";
 import { Sprout } from "lucide-react";
 import { onAuthStateChanged, signInWithCustomToken, signOut, type User } from "firebase/auth";
+import { DinoLoader } from "@/components/DinoLoader";
 import { ACCESS_CLAIM } from "@/lib/access";
 import { clientAuth } from "@/lib/firebase";
 
@@ -52,8 +53,8 @@ export function AuthGate({ children }: { children: (user: User) => ReactNode }) 
 
   if (user === undefined) {
     return (
-      <div className="flex justify-center pt-24">
-        <Spin size="large" />
+      <div className="pt-24">
+        <DinoLoader />
       </div>
     );
   }

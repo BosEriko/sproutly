@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import type { User } from "firebase/auth";
-import { Alert, Button, Empty, Spin } from "antd";
+import { Alert, Button, Empty } from "antd";
 import { Milk, Sprout } from "lucide-react";
 import { AuthGate } from "@/components/AuthGate";
 import { BabyCard } from "@/components/BabyCard";
 import { BabyDrawer } from "@/components/BabyDrawer";
 import { BottleCard } from "@/components/BottleCard";
+import { DinoLoader } from "@/components/DinoLoader";
 import { END_ICONS } from "@/components/icons";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import type { BabyProfile } from "@/lib/baby";
@@ -100,9 +101,7 @@ function Tracker({ user }: { user: User }) {
       {error && <Alert type="error" title={error} showIcon />}
 
       {bottles === null ? (
-        <div className="flex justify-center py-8">
-          <Spin />
-        </div>
+        <DinoLoader label="Finding bottles…" />
       ) : active.length === 0 ? (
         <div className="paper rotate-[0.8deg] rounded-sm py-6">
           <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No bottles going right now" />
