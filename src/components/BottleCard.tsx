@@ -59,7 +59,7 @@ export function BottleCard({
       <span className="tape" style={{ background: expired ? "var(--tape-spoiled)" : TAPE[bottle.status] }} />
 
       <div className="flex items-center justify-between">
-        <Tag icon={<StatusIcon size={13} aria-hidden className="mr-1 inline align-[-2px]" />} bordered={false}>
+        <Tag icon={<StatusIcon size={13} aria-hidden className="mr-1 inline align-[-2px]" />} variant="filled">
           {STATUS_LABELS[bottle.status]}
         </Tag>
         <span className="text-sm text-muted">Made {formatTime(bottle.madeAt)}</span>

@@ -32,3 +32,34 @@ export function estimateNextFeeding(lastFed: number, ageDays: number): FeedingEs
   const { minHours, maxHours } = feedingInterval(ageDays);
   return { lastFedAt: lastFed, from: lastFed + minHours * HOUR, to: lastFed + maxHours * HOUR };
 }
+
+const ML_PER_KG_PER_DAY = 150;
+const MAX_ML_PER_DAY = 960;
+export const MIN_FEED_ML = 10;
+export const MAX_FEED_ML = 360;
+
+function roundTo10(ml: number) {
+  return Math.min(MAX_FEED_ML, Math.max(MIN_FEED_ML, Math.round(ml / 10) * 10));
+}
+
+export function feedsPerDay(ageDays: number): number {
+  const { minHours, maxHours } = feedingInterval(ageDays);
+  return Math.round(24 / ((minHours + maxHours) / 2));
+}
+
+function mlByAge(ageDays: number): number {
+  if (ageDays < 30) return 70;
+  if (ageDays < 60) return 120;
+  if (ageDays < 120) return 150;
+  if (ageDays < 180) return 180;
+  return 210;
+}
+
+export function idealFeedMl(ageDays: number | null, weightKg: number | null): number {
+  if (weightKg && weightKg > 0) {
+    const perDay = Math.min(MAX_ML_PER_DAY, weightKg * ML_PER_KG_PER_DAY);
+    return roundTo10(perDay / (ageDays === null ? 7 : feedsPerDay(ageDays)));
+  }
+  if (ageDays !== null) return mlByAge(ageDays);
+  return 120;
+}

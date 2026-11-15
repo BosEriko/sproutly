@@ -60,6 +60,7 @@ export async function POST(req: NextRequest) {
       value: bottle.spoilsAt ? `<t:${unix(bottle.spoilsAt)}:t> (<t:${unix(bottle.spoilsAt)}:R>)` : "—",
       inline: true,
     },
+    ...(typeof bottle.amountMl === "number" ? [{ name: "Drank", value: `${bottle.amountMl} ml`, inline: true }] : []),
   ];
 
   const events = (bottle.events ?? []) as { type: "made" | Action; at: Timestamp }[];

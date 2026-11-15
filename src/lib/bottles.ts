@@ -29,6 +29,7 @@ export interface Bottle extends BottleState {
   id: string;
   createdBy: string;
   events: BottleEvent[];
+  amountMl?: number;
 }
 
 function toBottle(id: string, data: DocumentData): Bottle {
@@ -40,6 +41,7 @@ function toBottle(id: string, data: DocumentData): Bottle {
     wasRefrigeratedOut: Boolean(data.wasRefrigeratedOut),
     endReason: data.endReason ?? undefined,
     createdBy: data.createdBy,
+    amountMl: typeof data.amountMl === "number" ? data.amountMl : undefined,
     events: (data.events ?? []).map((e: DocumentData) => ({
       type: e.type,
       at: (e.at as Timestamp).toMillis(),
@@ -73,7 +75,12 @@ export async function createBottle(user: User): Promise<string> {
   return ref.id;
 }
 
-export async function updateBottle(id: string, action: Action, user: User): Promise<void> {
+export async function updateBottle(
+  id: string,
+  action: Action,
+  user: User,
+  extra: { amountMl?: number } = {},
+): Promise<void> {
   const db = clientDb();
   const ref = doc(db, BOTTLES_COLLECTION, id);
   await runTransaction(db, async (tx) => {
@@ -82,7 +89,7 @@ export async function updateBottle(id: string, action: Action, user: User): Prom
     const now = Date.now();
     const current = toBottle(snap.id, snap.data());
     const next = applyAction(current, action, now);
-    tx.update(ref, toDoc(next, [...current.events, eventFor(action, user, now)]));
+    tx.update(ref, { ...toDoc(next, [...current.events, eventFor(action, user, now)]), ...extra });
   });
 }
 

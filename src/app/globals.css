@@ -75,7 +75,8 @@
     transition: rotate 250ms ease;
   }
 
-  .sticky.sticky {
+  .sticky.sticky,
+  .sticky-note.sticky-note {
     border-color: transparent;
     border-radius: 2px 2px 32px 2px / 2px 2px 4px 2px;
     color: var(--ink);

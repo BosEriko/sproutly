@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ageInDays } from "./baby";
 import type { BottleEvent } from "./bottles";
-import { estimateNextFeeding, feedingInterval, lastFedAt } from "./feeding";
+import { estimateNextFeeding, feedingInterval, feedsPerDay, idealFeedMl, lastFedAt } from "./feeding";
 
 const HOUR = 60 * 60 * 1000;
 const event = (type: BottleEvent["type"], at: number): BottleEvent => ({ type, at, by: "u", byName: "u" });
@@ -43,5 +43,30 @@ describe("lastFedAt", () => {
 describe("estimateNextFeeding", () => {
   it("adds the age-based interval to the last feeding", () => {
     expect(estimateNextFeeding(10 * HOUR, 60)).toEqual({ lastFedAt: 10 * HOUR, from: 13 * HOUR, to: 14 * HOUR });
+  });
+});
+
+describe("feedsPerDay", () => {
+  it("follows the typical gap for the age", () => {
+    expect(feedsPerDay(10)).toBe(10);
+    expect(feedsPerDay(60)).toBe(7);
+    expect(feedsPerDay(200)).toBe(5);
+  });
+});
+
+describe("idealFeedMl", () => {
+  it("splits about 150 ml per kg per day across the day's feeds", () => {
+    expect(idealFeedMl(10, 3.5)).toBe(50);
+    expect(idealFeedMl(107, 6.2)).toBe(130);
+  });
+
+  it("caps the day at 960 ml", () => {
+    expect(idealFeedMl(200, 9)).toBe(190);
+  });
+
+  it("falls back to age, then to a general default", () => {
+    expect(idealFeedMl(45, null)).toBe(120);
+    expect(idealFeedMl(null, null)).toBe(120);
+    expect(idealFeedMl(null, 6)).toBe(130);
   });
 });

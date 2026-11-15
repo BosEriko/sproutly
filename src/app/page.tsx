@@ -11,14 +11,16 @@ import { BathCard } from "@/components/BathCard";
 import { BottleCard } from "@/components/BottleCard";
 import { DiaperCard } from "@/components/DiaperCard";
 import { DinoLoader } from "@/components/DinoLoader";
+import { FinishDialog } from "@/components/FinishDialog";
 import { END_ICONS } from "@/components/icons";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { Logo } from "@/components/Logo";
 import { NextFeedingCard } from "@/components/NextFeedingCard";
 import { PenCircle } from "@/components/PenCircle";
 import { SunlightCard } from "@/components/SunlightCard";
-import type { BabyProfile } from "@/lib/baby";
+import { ageInDays, type BabyProfile } from "@/lib/baby";
 import { createBottle, deleteDiscardedBottle, subscribeBottles, updateBottle, type Bottle } from "@/lib/bottles";
+import { idealFeedMl } from "@/lib/feeding";
 import { notifyDiscord } from "@/lib/notify";
 import { subscribeProfile } from "@/lib/profile";
 import type { Action } from "@/lib/spoil";
@@ -72,6 +74,7 @@ function Tracker({ user }: { user: User }) {
   const [profile, setProfile] = useState<BabyProfile | null | undefined>(undefined);
   const [editingProfile, setEditingProfile] = useState(false);
   const [tab, setTab] = useTab();
+  const [finishing, setFinishing] = useState<string | null>(null);
 
   useEffect(
     () => subscribeBottles(setBottles, (e) => setError(e.message)),
@@ -101,11 +104,31 @@ function Tracker({ user }: { user: User }) {
       await notifyDiscord(user, id);
     });
 
-  const handleAction = (id: string, action: Action) =>
-    run(async () => {
+  const handleAction = (id: string, action: Action) => {
+    if (action === "finish") {
+      setFinishing(id);
+      return;
+    }
+    return run(async () => {
       await updateBottle(id, action, user);
       await notifyDiscord(user, id);
     });
+  };
+
+  const handleFinish = (amountMl: number) => {
+    const id = finishing;
+    setFinishing(null);
+    if (!id) return;
+    return run(async () => {
+      await updateBottle(id, "finish", user, { amountMl });
+      await notifyDiscord(user, id);
+    });
+  };
+
+  const suggestedMl = idealFeedMl(
+    profile?.birthday ? ageInDays(profile.birthday, new Date(now)) : null,
+    profile?.weightKg ?? null,
+  );
 
   const handleDelete = (id: string) => run(() => deleteDiscardedBottle(id, user));
 
@@ -212,6 +235,7 @@ function Tracker({ user }: { user: User }) {
                         )}
                         <EndIcon size={14} aria-hidden />
                         {discarded ? "Discarded" : "Finished"}
+                        {b.amountMl ? ` · ${b.amountMl} ml` : ""}
                         {last ? ` · ${new Date(last.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : ""}
                       </span>
                     </li>
@@ -226,6 +250,14 @@ function Tracker({ user }: { user: User }) {
       {tab === "diaper" && <DiaperCard user={user} now={now} />}
       {tab === "bath" && <BathCard user={user} now={now} />}
       {tab === "sunlight" && <SunlightCard user={user} now={now} />}
+
+      <FinishDialog
+        open={finishing !== null}
+        name={profile?.name || "your baby"}
+        suggestedMl={suggestedMl}
+        onCancel={() => setFinishing(null)}
+        onConfirm={handleFinish}
+      />
 
       <BabyDrawer open={editingProfile} profile={profile ?? null} onClose={() => setEditingProfile(false)} />
     </main>
