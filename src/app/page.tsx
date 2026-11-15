@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { User } from "firebase/auth";
 import { AuthGate } from "@/components/AuthGate";
 import { BottleCard } from "@/components/BottleCard";
+import { InstallPrompt } from "@/components/InstallPrompt";
 import { createBottle, subscribeBottles, updateBottle, type Bottle } from "@/lib/bottles";
 import { notifyDiscord } from "@/lib/notify";
 import type { Action } from "@/lib/spoil";
@@ -111,5 +112,10 @@ function Tracker({ user }: { user: User }) {
 }
 
 export default function Home() {
-  return <AuthGate>{(user) => <Tracker user={user} />}</AuthGate>;
+  return (
+    <>
+      <AuthGate>{(user) => <Tracker user={user} />}</AuthGate>
+      <InstallPrompt />
+    </>
+  );
 }
