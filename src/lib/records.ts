@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { Timestamp, type DocumentData } from "firebase-admin/firestore";
-import { deleteMessage, postMessage, webhookIdentity } from "./discord";
+import { deleteMessage, editMessage, postMessage, webhookIdentity } from "./discord";
 import { adminDb } from "./firebaseAdmin";
 
 export async function createRecord(
@@ -43,3 +43,34 @@ export async function deleteRecord(collectionPath: string, id: string) {
   await ref.delete();
   return NextResponse.json({ ok: true });
 }
+
+const YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+
+export function toTimestamp(value: unknown): Timestamp | null {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  const now = Date.now();
+  if (value > now + 60_000 || value < now - YEAR_MS) return null;
+  return Timestamp.fromMillis(value);
+}
+
+export async function updateRecord(
+  collectionPath: string,
+  id: string,
+  data: DocumentData,
+  embed: (record: DocumentData) => object,
+) {
+  const ref = adminDb().collection(collectionPath).doc(id);
+  const snap = await ref.get();
+  if (!snap.exists) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  await ref.update(data);
+  const record = { ...snap.data()!, ...data };
+
+  const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+  if (webhookUrl && record.discordMessageId) {
+    await editMessage(webhookUrl, record.discordMessageId, { embeds: [embed(record)] });
+  }
+  return NextResponse.json({ ok: true });
+}
+
+export const unixOf = (t: Timestamp) => Math.floor(t.toMillis() / 1000);

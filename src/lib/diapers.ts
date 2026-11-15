@@ -27,3 +27,7 @@ export function logDiaper(kind: DiaperKind, user: User) {
 export function deleteDiaper(id: string, user: User) {
   return apiRequest(user, `/api/diapers/${id}`, { method: "DELETE" });
 }
+
+export function updateDiaper(id: string, kind: DiaperKind, at: number, user: User) {
+  return apiRequest(user, `/api/diapers/${id}`, { method: "PATCH", body: JSON.stringify({ kind, at }) });
+}

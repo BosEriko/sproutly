@@ -105,6 +105,10 @@ export function subscribeBottles(
   );
 }
 
-export function deleteDiscardedBottle(id: string, user: User): Promise<void> {
+export function deleteDoneBottle(id: string, user: User): Promise<void> {
   return apiRequest(user, `/api/bottles/${id}`, { method: "DELETE" });
+}
+
+export function updateBottleAmount(id: string, amountMl: number, user: User): Promise<void> {
+  return apiRequest(user, `/api/bottles/${id}`, { method: "PATCH", body: JSON.stringify({ amountMl }) });
 }

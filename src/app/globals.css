@@ -173,6 +173,46 @@
     animation: dino-shadow 0.9s ease-in-out infinite;
   }
 
+  .hold-row {
+    -webkit-touch-callout: none;
+    touch-action: pan-y;
+    transition: scale 150ms ease;
+  }
+
+  .hold-fill {
+    position: absolute;
+    inset: 2px -6px;
+    border-radius: 4px;
+    background: color-mix(in srgb, var(--hold) 75%, transparent);
+    transform-origin: left center;
+    scale: 0 1;
+    transition: scale 150ms ease-out;
+  }
+
+  .hold-row[data-holding="true"] {
+    scale: 0.98;
+  }
+
+  .hold-row[data-holding="true"] .hold-fill {
+    scale: 1 1;
+    transition: scale 550ms linear;
+  }
+
+  .hold-row:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--ink) 30%, transparent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  .hold-hint-icon {
+    animation: hold-hint 2.4s ease-in-out infinite;
+  }
+
+  @keyframes hold-hint {
+    0%, 55%, 100% { scale: 1; translate: 0 0; }
+    15%, 40% { scale: 0.8; translate: 0 1px; }
+  }
+
   .pen-circle path {
     stroke-dasharray: 1;
     stroke-dashoffset: 1;
@@ -207,6 +247,15 @@
     .pen-circle path {
       animation: none;
       stroke-dashoffset: 0;
+    }
+
+    .hold-hint-icon {
+      animation: none;
+    }
+
+    .hold-row,
+    .hold-row[data-holding="true"] {
+      scale: none;
     }
 
     .dino-hop,

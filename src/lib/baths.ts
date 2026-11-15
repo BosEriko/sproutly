@@ -21,3 +21,7 @@ export function logBath(user: User) {
 export function deleteBath(id: string, user: User) {
   return apiRequest(user, `/api/baths/${id}`, { method: "DELETE" });
 }
+
+export function updateBath(id: string, at: number, user: User) {
+  return apiRequest(user, `/api/baths/${id}`, { method: "PATCH", body: JSON.stringify({ at }) });
+}

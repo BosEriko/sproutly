@@ -2,10 +2,13 @@
 
 import { useEffect, useState, type CSSProperties, type SVGProps } from "react";
 import type { User } from "firebase/auth";
-import { Button, Popconfirm } from "antd";
-import { Droplet, X } from "lucide-react";
+import { Button } from "antd";
+import { Droplet } from "lucide-react";
 import { changesToday, countDiapers, DIAPER_KINDS, DIAPER_LABELS, type DiaperChange, type DiaperKind } from "@/lib/diaper";
-import { deleteDiaper, logDiaper, subscribeDiapers } from "@/lib/diapers";
+import { deleteDiaper, logDiaper, subscribeDiapers, updateDiaper } from "@/lib/diapers";
+import { EntryMenu } from "./EntryMenu";
+import { HoldHint, HoldRow } from "./HoldRow";
+import { WhenDialog } from "./WhenDialog";
 
 function DirtyIcon({ size = 16, ...props }: SVGProps<SVGSVGElement> & { size?: number }) {
   return (
@@ -38,14 +41,6 @@ function KindIcon({ kind, size = 16 }: { kind: DiaperKind; size?: number }) {
   );
 }
 
-const TILTS = [0.6, -0.4, 0.8];
-
-const STICKY: Record<DiaperKind, string> = {
-  wet: "var(--sticky-blue)",
-  dirty: "var(--sticky-yellow)",
-  both: "var(--sticky-pink)",
-};
-
 function formatTime(ms: number) {
   return new Date(ms).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
@@ -58,10 +53,21 @@ function formatAgo(ms: number) {
   return h ? `${h}h ${m}m ago` : `${m}m ago`;
 }
 
+const TILTS = [0.6, -0.4, 0.8];
+
+const STICKY: Record<DiaperKind, string> = {
+  wet: "var(--sticky-blue)",
+  dirty: "var(--sticky-yellow)",
+  both: "var(--sticky-pink)",
+};
+
 export function DiaperCard({ user, now }: { user: User; now: number }) {
   const [changes, setChanges] = useState<DiaperChange[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<DiaperChange | null>(null);
+  const [mode, setMode] = useState<"menu" | "edit" | null>(null);
+  const [editKind, setEditKind] = useState<DiaperKind>("wet");
 
   useEffect(() => subscribeDiapers(setChanges, (e) => setError(e.message)), []);
 
@@ -72,10 +78,16 @@ export function DiaperCard({ user, now }: { user: User; now: number }) {
       await task();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
+      throw e;
     } finally {
       setBusy(false);
     }
   }
+
+  const close = () => {
+    setMode(null);
+    setSelected(null);
+  };
 
   const today = changes ? changesToday(changes, new Date(now)) : [];
   const counts = countDiapers(today);
@@ -91,7 +103,7 @@ export function DiaperCard({ user, now }: { user: User; now: number }) {
             size="large"
             disabled={busy}
             icon={<KindIcon kind={kind} size={22} />}
-            onClick={() => run(() => logDiaper(kind, user))}
+            onClick={() => run(() => logDiaper(kind, user)).catch(() => {})}
             className="sticky h-20! flex-col! gap-0.5! font-hand text-2xl!"
             style={{ rotate: `${TILTS[i]}deg`, "--sticky": STICKY[kind] } as CSSProperties}
           >
@@ -112,43 +124,78 @@ export function DiaperCard({ user, now }: { user: User; now: number }) {
           {last ? `Last change ${formatTime(last.at)} · ${formatAgo(now - last.at)}` : "No changes logged yet"}
         </p>
 
-
         {error && <p className="mt-2 text-sm text-danger">{error}</p>}
 
         {today.length > 0 && (
-          <ul className="mt-3 divide-y divide-line">
-            {today.map((c) => (
-              <li key={c.id} className="flex h-10 items-center justify-between text-sm">
-                <span className="flex items-center gap-2">
-                  <span className="text-muted">
-                    <KindIcon kind={c.kind} size={14} />
+          <>
+            <ul className="mt-3 divide-y divide-line">
+              {today.map((c) => (
+                <HoldRow
+                  key={c.id}
+                  label={`${DIAPER_LABELS[c.kind]} at ${formatTime(c.at)}`}
+                  color={STICKY[c.kind]}
+                  className="h-10 text-sm"
+                  onHold={() => {
+                    setSelected(c);
+                    setEditKind(c.kind);
+                    setMode("menu");
+                  }}
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="text-muted">
+                      <KindIcon kind={c.kind} size={14} />
+                    </span>
+                    {DIAPER_LABELS[c.kind]}
                   </span>
-                  {DIAPER_LABELS[c.kind]}
-                </span>
-                <span className="flex items-center gap-1 text-muted">
-                  <Popconfirm
-                    title="Delete this diaper change?"
-                    description="This also removes its Discord card."
-                    okText="Delete"
-                    okButtonProps={{ danger: true }}
-                    onConfirm={() => run(() => deleteDiaper(c.id, user))}
-                  >
-                    <Button
-                      type="text"
-                      size="small"
-                      shape="circle"
-                      disabled={busy}
-                      aria-label="Delete diaper change"
-                      icon={<X size={14} aria-hidden />}
-                    />
-                  </Popconfirm>
-                  {formatTime(c.at)}
-                </span>
-              </li>
-            ))}
-          </ul>
+                  <span className="text-muted">{formatTime(c.at)}</span>
+                </HoldRow>
+              ))}
+            </ul>
+            <div className="mt-2">
+              <HoldHint />
+            </div>
+          </>
         )}
       </section>
+
+      <EntryMenu
+        open={mode === "menu"}
+        title={selected ? `${DIAPER_LABELS[selected.kind]} · ${formatTime(selected.at)}` : ""}
+        onClose={close}
+        onEdit={() => setMode("edit")}
+        onDelete={() => (selected ? run(() => deleteDiaper(selected.id, user)) : Promise.resolve())}
+      />
+
+      <WhenDialog
+        open={mode === "edit"}
+        title="Edit diaper change"
+        color="var(--sticky-blue)"
+        initialAt={selected?.at ?? now}
+        saving={busy}
+        onCancel={close}
+        onSave={(at) => {
+          if (!selected) return;
+          run(() => updateDiaper(selected.id, editKind, at, user))
+            .then(close)
+            .catch(() => {});
+        }}
+      >
+        <div className="grid grid-cols-3 gap-2">
+          {DIAPER_KINDS.map((kind, i) => (
+            <Button
+              key={kind}
+              type="primary"
+              aria-pressed={editKind === kind}
+              icon={<KindIcon kind={kind} size={18} />}
+              onClick={() => setEditKind(kind)}
+              className={`sticky h-16! flex-col! gap-0! font-hand text-xl! ${editKind === kind ? "sticky-active" : "sticky-idle"}`}
+              style={{ rotate: `${TILTS[i]}deg`, "--sticky": STICKY[kind] } as CSSProperties}
+            >
+              {DIAPER_LABELS[kind]}
+            </Button>
+          ))}
+        </div>
+      </WhenDialog>
     </>
   );
 }

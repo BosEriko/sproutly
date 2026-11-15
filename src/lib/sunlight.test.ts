@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dateKey, formatDateKey, isDateKey } from "./sunlight";
+import { dateKey, formatDateKey, isDateKey, isSunMinutes } from "./sunlight";
 
 describe("dateKey", () => {
   it("uses the local calendar date", () => {
@@ -20,5 +20,15 @@ describe("isDateKey", () => {
     expect(isDateKey("2026-11-16T00:00")).toBe(false);
     expect(isDateKey("../x")).toBe(false);
     expect(isDateKey(5)).toBe(false);
+  });
+});
+
+describe("isSunMinutes", () => {
+  it("accepts whole minutes from 0 to 30", () => {
+    expect(isSunMinutes(0)).toBe(true);
+    expect(isSunMinutes(30)).toBe(true);
+    expect(isSunMinutes(31)).toBe(false);
+    expect(isSunMinutes(2.5)).toBe(false);
+    expect(isSunMinutes("5")).toBe(false);
   });
 });

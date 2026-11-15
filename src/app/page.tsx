@@ -2,8 +2,8 @@
 
 import { useEffect, useState, type CSSProperties } from "react";
 import type { User } from "firebase/auth";
-import { Alert, Button, Popconfirm } from "antd";
-import { Bath, Droplet, Milk, Sun, X, type LucideIcon } from "lucide-react";
+import { Alert, Button } from "antd";
+import { Bath, Droplet, Milk, Sun, type LucideIcon } from "lucide-react";
 import { AuthGate } from "@/components/AuthGate";
 import { BabyCard } from "@/components/BabyCard";
 import { BabyDrawer } from "@/components/BabyDrawer";
@@ -11,7 +11,9 @@ import { BathCard } from "@/components/BathCard";
 import { BottleCard } from "@/components/BottleCard";
 import { DiaperCard } from "@/components/DiaperCard";
 import { DinoLoader } from "@/components/DinoLoader";
+import { EntryMenu } from "@/components/EntryMenu";
 import { FinishDialog } from "@/components/FinishDialog";
+import { HoldHint, HoldRow } from "@/components/HoldRow";
 import { END_ICONS } from "@/components/icons";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { Logo } from "@/components/Logo";
@@ -19,7 +21,14 @@ import { NextFeedingCard } from "@/components/NextFeedingCard";
 import { PenCircle } from "@/components/PenCircle";
 import { SunlightCard } from "@/components/SunlightCard";
 import { ageInDays, type BabyProfile } from "@/lib/baby";
-import { createBottle, deleteDiscardedBottle, subscribeBottles, updateBottle, type Bottle } from "@/lib/bottles";
+import {
+  createBottle,
+  deleteDoneBottle,
+  subscribeBottles,
+  updateBottle,
+  updateBottleAmount,
+  type Bottle,
+} from "@/lib/bottles";
 import { idealFeedMl } from "@/lib/feeding";
 import { notifyDiscord } from "@/lib/notify";
 import { subscribeProfile } from "@/lib/profile";
@@ -75,6 +84,8 @@ function Tracker({ user }: { user: User }) {
   const [editingProfile, setEditingProfile] = useState(false);
   const [tab, setTab] = useTab();
   const [finishing, setFinishing] = useState<string | null>(null);
+  const [picked, setPicked] = useState<Bottle | null>(null);
+  const [historyMode, setHistoryMode] = useState<"menu" | "edit" | null>(null);
 
   useEffect(
     () => subscribeBottles(setBottles, (e) => setError(e.message)),
@@ -130,7 +141,20 @@ function Tracker({ user }: { user: User }) {
     profile?.weightKg ?? null,
   );
 
-  const handleDelete = (id: string) => run(() => deleteDiscardedBottle(id, user));
+  const closeHistory = () => {
+    setHistoryMode(null);
+    setPicked(null);
+  };
+
+  const handleEditAmount = (amountMl: number) => {
+    const bottle = picked;
+    closeHistory();
+    if (!bottle) return;
+    return run(async () => {
+      await updateBottleAmount(bottle.id, amountMl, user);
+      await notifyDiscord(user, bottle.id);
+    });
+  };
 
   const active = bottles?.filter((b) => b.status !== "done") ?? [];
   const history = bottles?.filter((b) => b.status === "done").slice(0, 10) ?? [];
@@ -211,37 +235,32 @@ function Tracker({ user }: { user: User }) {
                   const last = b.events[b.events.length - 1];
                   const discarded = b.endReason === "discarded";
                   const EndIcon = END_ICONS[discarded ? "discarded" : "finished"];
+                  const time = last ? new Date(last.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "";
                   return (
-                    <li key={b.id} className="flex h-11 items-center justify-between text-sm">
+                    <HoldRow
+                      key={b.id}
+                      label={`Bottle made ${formatDateTime(b.madeAt)}, ${discarded ? "discarded" : "finished"}`}
+                      color={discarded ? "var(--sticky-pink)" : "var(--sticky-mint)"}
+                      className="h-11 text-sm"
+                      onHold={() => {
+                        setPicked(b);
+                        setHistoryMode("menu");
+                      }}
+                    >
                       <span>Made {formatDateTime(b.madeAt)}</span>
                       <span className={`flex items-center gap-1 ${discarded ? "text-danger" : "text-muted"}`}>
-                        {discarded && (
-                          <Popconfirm
-                            title="Delete this bottle?"
-                            description="This also removes its Discord card."
-                            okText="Delete"
-                            okButtonProps={{ danger: true }}
-                            onConfirm={() => handleDelete(b.id)}
-                          >
-                            <Button
-                              type="text"
-                              size="small"
-                              shape="circle"
-                              disabled={busy}
-                              aria-label="Delete discarded bottle"
-                              icon={<X size={14} aria-hidden />}
-                            />
-                          </Popconfirm>
-                        )}
                         <EndIcon size={14} aria-hidden />
                         {discarded ? "Discarded" : "Finished"}
                         {b.amountMl ? ` · ${b.amountMl} ml` : ""}
-                        {last ? ` · ${new Date(last.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : ""}
+                        {time ? ` · ${time}` : ""}
                       </span>
-                    </li>
+                    </HoldRow>
                   );
                 })}
               </ul>
+              <div className="mt-2">
+                <HoldHint />
+              </div>
             </section>
           )}
         </>
@@ -257,6 +276,24 @@ function Tracker({ user }: { user: User }) {
         suggestedMl={suggestedMl}
         onCancel={() => setFinishing(null)}
         onConfirm={handleFinish}
+      />
+
+      <EntryMenu
+        open={historyMode === "menu"}
+        title={picked ? `Bottle · ${formatDateTime(picked.madeAt)}` : ""}
+        canEdit={picked?.endReason === "finished"}
+        onClose={closeHistory}
+        onEdit={() => setHistoryMode("edit")}
+        onDelete={() => (picked ? run(() => deleteDoneBottle(picked.id, user)) : Promise.resolve())}
+      />
+
+      <FinishDialog
+        open={historyMode === "edit"}
+        name={profile?.name || "your baby"}
+        suggestedMl={suggestedMl}
+        initialMl={picked?.amountMl ?? suggestedMl}
+        onCancel={closeHistory}
+        onConfirm={handleEditAmount}
       />
 
       <BabyDrawer open={editingProfile} profile={profile ?? null} onClose={() => setEditingProfile(false)} />

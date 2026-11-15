@@ -10,11 +10,26 @@ export function subscribeSunlight(
   onError: (error: Error) => void,
 ): () => void {
   const q = query(collection(clientDb(), SUNLIGHT_COLLECTION), orderBy("date", "desc"), limit(14));
-  return onSnapshot(q, (snap) => onChange(snap.docs.map((d) => ({ date: d.id }))), onError);
+  return onSnapshot(
+    q,
+    (snap) =>
+      onChange(
+        snap.docs.map((d) => ({
+          date: d.id,
+          frontMin: typeof d.data().frontMin === "number" ? d.data().frontMin : null,
+          backMin: typeof d.data().backMin === "number" ? d.data().backMin : null,
+        })),
+      ),
+    onError,
+  );
 }
 
-export function logSunlight(date: string, user: User) {
-  return apiRequest(user, "/api/sunlight", { method: "POST", body: JSON.stringify({ date }) });
+export function logSunlight(date: string, frontMin: number, backMin: number, user: User) {
+  return apiRequest(user, "/api/sunlight", { method: "POST", body: JSON.stringify({ date, frontMin, backMin }) });
+}
+
+export function updateSunlight(date: string, frontMin: number, backMin: number, user: User) {
+  return apiRequest(user, `/api/sunlight/${date}`, { method: "PATCH", body: JSON.stringify({ frontMin, backMin }) });
 }
 
 export function deleteSunlight(date: string, user: User) {
