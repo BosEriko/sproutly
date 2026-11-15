@@ -1,3 +1,6 @@
 allowBuilds:
   '@firebase/util': false
   protobufjs: false
+
+overrides:
+  jwks-rsa>jose: 5.10.0
