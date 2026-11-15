@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type { Timestamp } from "firebase-admin/firestore";
+import { ACCESS_CLAIM } from "@/lib/access";
 import { BOTTLES_COLLECTION } from "@/lib/collections";
 import { adminAuth, adminDb } from "@/lib/firebaseAdmin";
 import type { Action, EndReason, Status } from "@/lib/spoil";
@@ -63,17 +64,13 @@ export async function POST(req: NextRequest) {
   const token = req.headers.get("authorization")?.replace(/^Bearer /, "");
   if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  let email: string | undefined;
+  let allowed = false;
   try {
-    email = (await adminAuth().verifyIdToken(token)).email;
+    allowed = (await adminAuth().verifyIdToken(token))[ACCESS_CLAIM] === true;
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
-  const allowedEmail = process.env.ALLOWED_EMAIL?.trim().toLowerCase();
-  if (!allowedEmail || email?.toLowerCase() !== allowedEmail) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
   const { bottleId } = (await req.json()) as { bottleId?: string };
   if (!bottleId) return NextResponse.json({ error: "Bad request" }, { status: 400 });

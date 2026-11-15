@@ -23,13 +23,6 @@ jobs:
         with:
           node-version: 22
 
-      - run: |
-          test -n "$ALLOWED_EMAIL"
-          sed -i "s|REPLACE_WITH_ALLOWED_EMAIL|$ALLOWED_EMAIL|" firestore.rules
-          ! grep -q REPLACE_WITH_ALLOWED_EMAIL firestore.rules
-        env:
-          ALLOWED_EMAIL: ${{ secrets.ALLOWED_EMAIL }}
-
       - run: npx --yes firebase-tools deploy --only firestore --project boseriko-apps --non-interactive --token "$FIREBASE_TOKEN"
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}

@@ -3,11 +3,11 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Alert, Button, Form, Input, Spin } from "antd";
 import { Sprout } from "lucide-react";
-import { onAuthStateChanged, signInWithEmailAndPassword, type User } from "firebase/auth";
+import { onAuthStateChanged, signInWithCustomToken, signOut, type User } from "firebase/auth";
+import { ACCESS_CLAIM } from "@/lib/access";
 import { clientAuth } from "@/lib/firebase";
 
 interface Credentials {
-  email: string;
   password: string;
 }
 
@@ -16,15 +16,35 @@ export function AuthGate({ children }: { children: (user: User) => ReactNode }) 
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => onAuthStateChanged(clientAuth(), setUser), []);
+  useEffect(
+    () =>
+      onAuthStateChanged(clientAuth(), async (next) => {
+        if (next && (await next.getIdTokenResult()).claims[ACCESS_CLAIM] !== true) {
+          await signOut(clientAuth());
+          return;
+        }
+        setUser(next);
+      }),
+    [],
+  );
 
-  async function handleFinish({ email, password }: Credentials) {
+  async function handleFinish({ password }: Credentials) {
     setBusy(true);
     setError(null);
     try {
-      await signInWithEmailAndPassword(clientAuth(), email, password);
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      if (!res.ok) {
+        setError(res.status === 429 ? "Too many tries. Wait a bit and try again." : "Wrong password.");
+        return;
+      }
+      const { token } = (await res.json()) as { token: string };
+      await signInWithCustomToken(clientAuth(), token);
     } catch {
-      setError("Wrong email or password.");
+      setError("Could not sign in. Check your connection and try again.");
     } finally {
       setBusy(false);
     }
@@ -48,9 +68,7 @@ export function AuthGate({ children }: { children: (user: User) => ReactNode }) 
             Sproutly
           </h1>
           <Form<Credentials> layout="vertical" requiredMark={false} onFinish={handleFinish} disabled={busy}>
-            <Form.Item name="email" label="Email" rules={[{ required: true, type: "email" }]}>
-              <Input size="large" autoComplete="email" inputMode="email" />
-            </Form.Item>
+            <input type="text" name="username" autoComplete="username" value="sproutly" readOnly hidden />
             <Form.Item name="password" label="Password" rules={[{ required: true }]}>
               <Input.Password size="large" autoComplete="current-password" />
             </Form.Item>
