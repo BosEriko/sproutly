@@ -23,6 +23,16 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /apps/sproutly/baths/{bathId} {
+      allow read: if isAllowed();
+      allow write: if false;
+    }
+
+    match /apps/sproutly/sunlight/{sessionId} {
+      allow read: if isAllowed();
+      allow write: if false;
+    }
+
     match /apps/sproutly/profile/baby {
       allow read: if isAllowed();
       allow write: if isAllowed()

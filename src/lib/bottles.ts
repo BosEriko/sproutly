@@ -11,6 +11,7 @@ import {
   type DocumentData,
 } from "firebase/firestore";
 import type { User } from "firebase/auth";
+import { apiRequest } from "./api";
 import { BOTTLES_COLLECTION } from "./collections";
 import { clientDb } from "./firebase";
 import { applyAction, newBottle, type Action, type BottleState } from "./spoil";
@@ -97,13 +98,6 @@ export function subscribeBottles(
   );
 }
 
-export async function deleteDiscardedBottle(id: string, user: User): Promise<void> {
-  const res = await fetch(`/api/bottles/${id}`, {
-    method: "DELETE",
-    headers: { Authorization: `Bearer ${await user.getIdToken()}` },
-  });
-  if (!res.ok) {
-    const { error } = (await res.json().catch(() => ({}))) as { error?: string };
-    throw new Error(error ?? "Could not delete the bottle");
-  }
+export function deleteDiscardedBottle(id: string, user: User): Promise<void> {
+  return apiRequest(user, `/api/bottles/${id}`, { method: "DELETE" });
 }

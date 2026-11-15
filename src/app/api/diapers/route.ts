@@ -1,10 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { Timestamp } from "firebase-admin/firestore";
 import { authorize } from "@/lib/authorize";
 import { DIAPERS_COLLECTION } from "@/lib/collections";
 import { DIAPER_LABELS, isDiaperKind, type DiaperKind } from "@/lib/diaper";
-import { postMessage, webhookIdentity } from "@/lib/discord";
-import { adminDb } from "@/lib/firebaseAdmin";
+import { createRecord } from "@/lib/records";
 
 export const runtime = "nodejs";
 
@@ -27,27 +25,12 @@ export async function POST(req: NextRequest) {
   const { kind } = (await req.json()) as { kind?: unknown };
   if (!isDiaperKind(kind)) return NextResponse.json({ error: "Bad request" }, { status: 400 });
 
-  const at = Timestamp.now();
-  const ref = await adminDb().collection(DIAPERS_COLLECTION).add({ kind, at });
-
-  const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
-  if (webhookUrl) {
-    const unix = Math.floor(at.toMillis() / 1000);
-    const messageId = await postMessage(webhookUrl, {
-      ...webhookIdentity(req),
-      embeds: [
-        {
-          title: TITLES[kind],
-          color: COLORS[kind],
-          fields: [
-            { name: "Changed", value: `<t:${unix}:t> (<t:${unix}:R>)`, inline: true },
-            { name: "Type", value: DIAPER_LABELS[kind], inline: true },
-          ],
-        },
-      ],
-    });
-    if (messageId) await ref.update({ discordMessageId: messageId });
-  }
-
-  return NextResponse.json({ id: ref.id });
+  return createRecord(req, DIAPERS_COLLECTION, { kind }, (unix) => ({
+    title: TITLES[kind],
+    color: COLORS[kind],
+    fields: [
+      { name: "Changed", value: `<t:${unix}:t> (<t:${unix}:R>)`, inline: true },
+      { name: "Type", value: DIAPER_LABELS[kind], inline: true },
+    ],
+  }));
 }

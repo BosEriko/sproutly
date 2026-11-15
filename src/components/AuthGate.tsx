@@ -2,9 +2,9 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { Alert, Button, Form, Input } from "antd";
-import { Sprout } from "lucide-react";
 import { onAuthStateChanged, signInWithCustomToken, signOut, type User } from "firebase/auth";
 import { DinoLoader } from "@/components/DinoLoader";
+import { Logo } from "@/components/Logo";
 import { ACCESS_CLAIM } from "@/lib/access";
 import { clientAuth } from "@/lib/firebase";
 
@@ -64,9 +64,8 @@ export function AuthGate({ children }: { children: (user: User) => ReactNode }) 
       <main className="mx-auto w-full max-w-sm px-4 pt-20">
         <div className="paper -rotate-1 rounded-sm px-6 pt-10 pb-6">
           <span className="tape" />
-          <h1 className="mb-6 flex items-center justify-center gap-2 font-hand text-5xl font-bold text-accent">
-            <Sprout size={36} strokeWidth={2.25} aria-hidden />
-            Sproutly
+          <h1 className="mb-6">
+            <Logo size={52} />
           </h1>
           <Form<Credentials> layout="vertical" requiredMark={false} onFinish={handleFinish} disabled={busy}>
             <input type="text" name="username" autoComplete="username" value="sproutly" readOnly hidden />

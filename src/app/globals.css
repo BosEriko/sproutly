@@ -21,6 +21,8 @@
   --sticky-blue: #c4def6;
   --sticky-yellow: #fde7a9;
   --sticky-pink: #f8cddf;
+  --sticky-lavender: #ddd2f6;
+  --sticky-sun: #ffd9a8;
   --shadow: 0 1px 1px rgb(70 60 100 / 0.05), 0 6px 16px rgb(70 60 100 / 0.08);
   --shadow-lift: 0 2px 2px rgb(70 60 100 / 0.06), 0 14px 28px rgb(70 60 100 / 0.12);
 }
@@ -94,6 +96,19 @@
       filter 200ms ease;
   }
 
+  .sticky.sticky-idle.sticky-idle {
+    background: color-mix(in srgb, var(--sticky) 45%, #ffffff);
+    color: var(--muted);
+    box-shadow:
+      0 1px 1px rgb(60 50 80 / 0.05),
+      3px 4px 5px -4px rgb(60 50 80 / 0.14);
+  }
+
+  .sticky.sticky-active.sticky-active {
+    translate: 0 -3px;
+    font-weight: 700;
+  }
+
   .sticky.sticky:disabled {
     filter: saturate(0.5) opacity(0.7);
   }
@@ -157,6 +172,16 @@
     animation: dino-shadow 0.9s ease-in-out infinite;
   }
 
+  .pen-circle path {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: pen-draw 450ms ease-out forwards;
+  }
+
+  @keyframes pen-draw {
+    to { stroke-dashoffset: 0; }
+  }
+
   @keyframes dino-hop {
     0%, 100% { translate: 0 0; }
     50% { translate: 0 -14px; }
@@ -178,6 +203,11 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
+    .pen-circle path {
+      animation: none;
+      stroke-dashoffset: 0;
+    }
+
     .dino-hop,
     .dino-head,
     .dino-tail,

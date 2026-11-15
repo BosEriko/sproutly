@@ -11,6 +11,13 @@ export function appIcon({
 }) {
   const unit = (size / 180) * glyphScale;
   const at = (value: number) => (size - 180 * unit) / 2 + value * unit;
+  const box = (left: number, top: number, width: number, height: number) => ({
+    position: "absolute" as const,
+    left: at(left),
+    top: at(top),
+    width: width * unit,
+    height: height * unit,
+  });
 
   return new ImageResponse(
     (
@@ -19,46 +26,19 @@ export function appIcon({
           width: "100%",
           height: "100%",
           display: "flex",
-          background: "#5f8a52",
+          background: "#7cc495",
           borderRadius: rounded ? size / 4 : 0,
           position: "relative",
         }}
       >
-        <div
-          style={{
-            position: "absolute",
-            left: at(84),
-            top: at(62),
-            width: 12 * unit,
-            height: 88 * unit,
-            borderRadius: 6 * unit,
-            background: "#ffffff",
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            left: at(36),
-            top: at(48),
-            width: 56 * unit,
-            height: 34 * unit,
-            borderRadius: `${34 * unit}px 0`,
-            background: "#ffffff",
-            transform: "rotate(25deg)",
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            left: at(88),
-            top: at(34),
-            width: 60 * unit,
-            height: 36 * unit,
-            borderRadius: `0 ${36 * unit}px`,
-            background: "#ffffff",
-            transform: "rotate(-25deg)",
-          }}
-        />
+        <div style={{ ...box(78, 18, 24, 30), borderRadius: `${12 * unit}px ${12 * unit}px ${3 * unit}px ${3 * unit}px`, background: "#fde7a9" }} />
+        <div style={{ ...box(62, 44, 56, 16), borderRadius: 5 * unit, background: "#f8cddf" }} />
+        <div style={{ ...box(58, 58, 64, 104), borderRadius: `${10 * unit}px ${10 * unit}px ${20 * unit}px ${20 * unit}px`, background: "#ffffff", display: "flex" }} />
+        <div style={{ ...box(58, 104, 64, 58), borderRadius: `0 0 ${20 * unit}px ${20 * unit}px`, background: "#fff6dc" }} />
+        <div style={{ ...box(70, 76, 16, 5), borderRadius: 3 * unit, background: "#7cc495" }} />
+        <div style={{ ...box(70, 92, 22, 5), borderRadius: 3 * unit, background: "#7cc495" }} />
+        <div style={{ ...box(70, 120, 16, 5), borderRadius: 3 * unit, background: "#7cc495" }} />
+        <div style={{ ...box(70, 136, 22, 5), borderRadius: 3 * unit, background: "#7cc495" }} />
       </div>
     ),
     { width: size, height: size },

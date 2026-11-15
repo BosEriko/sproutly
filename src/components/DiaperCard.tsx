@@ -103,7 +103,7 @@ export function DiaperCard({ user, now }: { user: User; now: number }) {
       <section className="paper rotate-[0.5deg] rounded-sm px-5 pt-7 pb-4">
         <span className="tape" style={{ background: "var(--tape-fridge)" }} />
         <div className="flex items-baseline justify-between">
-          <h2 className="font-hand text-3xl font-bold">Diapers</h2>
+          <h2 className="font-hand text-3xl font-bold">Recent</h2>
           <span className="text-sm text-muted">
             Today: {counts.wet} wet · {counts.dirty} dirty
           </span>
@@ -126,7 +126,6 @@ export function DiaperCard({ user, now }: { user: User; now: number }) {
                   {DIAPER_LABELS[c.kind]}
                 </span>
                 <span className="flex items-center gap-1 text-muted">
-                  {formatTime(c.at)}
                   <Popconfirm
                     title="Delete this diaper change?"
                     description="This also removes its Discord card."
@@ -143,6 +142,7 @@ export function DiaperCard({ user, now }: { user: User; now: number }) {
                       icon={<X size={14} aria-hidden />}
                     />
                   </Popconfirm>
+                  {formatTime(c.at)}
                 </span>
               </li>
             ))}
