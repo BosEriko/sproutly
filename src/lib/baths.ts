@@ -6,7 +6,7 @@ import { BATHS_COLLECTION } from "./collections";
 import { clientDb } from "./firebase";
 
 export function subscribeBaths(onChange: (baths: Bath[]) => void, onError: (error: Error) => void): () => void {
-  const q = query(collection(clientDb(), BATHS_COLLECTION), orderBy("at", "desc"), limit(10));
+  const q = query(collection(clientDb(), BATHS_COLLECTION), orderBy("at", "desc"), limit(20));
   return onSnapshot(
     q,
     (snap) => onChange(snap.docs.map((d) => ({ id: d.id, at: (d.data().at as Timestamp).toMillis() }))),

@@ -126,7 +126,7 @@ export function DiaperCard({ user, now }: { user: User; now: number }) {
         empty="No changes logged yet"
         error={error}
       >
-        {today.map((c) => (
+        {today.slice(0, 20).map((c) => (
           <HistoryItem
             key={c.id}
             icon={<KindIcon kind={c.kind} size={15} />}

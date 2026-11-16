@@ -9,7 +9,7 @@ export function subscribeSunlight(
   onChange: (days: SunlightDay[]) => void,
   onError: (error: Error) => void,
 ): () => void {
-  const q = query(collection(clientDb(), SUNLIGHT_COLLECTION), orderBy("date", "desc"), limit(14));
+  const q = query(collection(clientDb(), SUNLIGHT_COLLECTION), orderBy("date", "desc"), limit(20));
   return onSnapshot(
     q,
     (snap) =>

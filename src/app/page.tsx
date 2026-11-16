@@ -161,7 +161,7 @@ function Tracker({ user }: { user: User }) {
   };
 
   const active = bottles?.filter((b) => b.status !== "done") ?? [];
-  const history = bottles?.filter((b) => b.status === "done").slice(0, 10) ?? [];
+  const history = bottles?.filter((b) => b.status === "done").slice(0, 20) ?? [];
   const intake = bottles ? averageIntake(bottles, now) : null;
 
   return (
