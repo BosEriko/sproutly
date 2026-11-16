@@ -3,7 +3,7 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import type { User } from "firebase/auth";
 import { Alert, Button } from "antd";
-import { Bath, Droplet, Milk, Sun, Timer, type LucideIcon } from "lucide-react";
+import { Bath, Droplet, Milk, Sun, type LucideIcon } from "lucide-react";
 import { AuthGate } from "@/components/AuthGate";
 import { BabyCard } from "@/components/BabyCard";
 import { BabyDrawer } from "@/components/BabyDrawer";
@@ -29,7 +29,7 @@ import {
   updateBottleAmount,
   type Bottle,
 } from "@/lib/bottles";
-import { durationLabel, feedingDuration, idealFeedMl } from "@/lib/feeding";
+import { feedingDuration, finishedTitle, idealFeedMl } from "@/lib/feeding";
 import { notifyDiscord } from "@/lib/notify";
 import { subscribeProfile } from "@/lib/profile";
 import type { Action } from "@/lib/spoil";
@@ -241,13 +241,8 @@ function Tracker({ user }: { user: User }) {
                   <HistoryItem
                     key={b.id}
                     icon={<EndIcon size={15} />}
-                    title={discarded ? "Discarded" : b.amountMl ? `${b.amountMl} ml` : "Finished"}
-                    facts={[
-                      { icon: <Milk size={12} />, text: formatDateTime(b.madeAt), label: "Made" },
-                      ...(duration !== null
-                        ? [{ icon: <Timer size={12} />, text: durationLabel(duration), label: "Feeding time" }]
-                        : []),
-                    ]}
+                    title={discarded ? "Discarded" : finishedTitle(b.amountMl, duration)}
+                    facts={[{ icon: <Milk size={12} />, text: formatDateTime(b.madeAt), label: "Made" }]}
                     meta={last ? formatTime(last.at) : undefined}
                     color={discarded ? "var(--sticky-pink)" : "var(--sticky-mint)"}
                     danger={discarded}

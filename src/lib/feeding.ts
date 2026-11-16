@@ -71,10 +71,8 @@ export function feedingDuration(bottle: Pick<Bottle, "events">): number | null {
   return end.at - start.at;
 }
 
-export function durationLabel(ms: number): string {
-  const minutes = Math.max(1, Math.round(ms / 60000));
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  if (h === 0) return `${m}m`;
-  return m ? `${h}h ${m}m` : `${h}h`;
+export function finishedTitle(amountMl: number | undefined, durationMs: number | null): string {
+  const minutes = durationMs === null ? null : Math.max(1, Math.round(durationMs / 60000));
+  const within = minutes === null ? "" : ` within ${minutes} ${minutes === 1 ? "minute" : "minutes"}`;
+  return amountMl ? `${amountMl}ml${within}` : `Finished${within}`;
 }

@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 import { ageInDays } from "./baby";
 import type { BottleEvent } from "./bottles";
 import {
-  durationLabel,
   estimateNextFeeding,
   feedingDuration,
   feedingInterval,
   feedsPerDay,
+  finishedTitle,
   idealFeedMl,
   lastFedAt,
 } from "./feeding";
@@ -92,10 +92,17 @@ describe("feedingDuration", () => {
   });
 });
 
-describe("durationLabel", () => {
-  it("shows minutes, then hours", () => {
-    expect(durationLabel(20 * 1000)).toBe("1m");
-    expect(durationLabel(18 * 60000)).toBe("18m");
-    expect(durationLabel(75 * 60000)).toBe("1h 15m");
+describe("finishedTitle", () => {
+  const MIN = 60000;
+
+  it("reads like 60ml within 60 minutes", () => {
+    expect(finishedTitle(60, 60 * MIN)).toBe("60ml within 60 minutes");
+    expect(finishedTitle(130, 20 * 1000)).toBe("130ml within 1 minute");
+  });
+
+  it("drops what it doesn't know", () => {
+    expect(finishedTitle(120, null)).toBe("120ml");
+    expect(finishedTitle(undefined, 18 * MIN)).toBe("Finished within 18 minutes");
+    expect(finishedTitle(undefined, null)).toBe("Finished");
   });
 });
