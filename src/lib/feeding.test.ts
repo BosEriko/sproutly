@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 import { ageInDays } from "./baby";
 import type { BottleEvent } from "./bottles";
 import {
+  averageIntake,
+  estimateFromRhythm,
   estimateNextFeeding,
   feedingDuration,
   feedingInterval,
+  feedingRhythm,
   feedsPerDay,
   finishedTitle,
   idealFeedMl,
@@ -104,5 +107,65 @@ describe("finishedTitle", () => {
     expect(finishedTitle(120, null)).toBe("120ml");
     expect(finishedTitle(undefined, 18 * MIN)).toBe("Finished within 18 minutes");
     expect(finishedTitle(undefined, null)).toBe("Finished");
+  });
+});
+
+describe("feedingRhythm", () => {
+  const MIN = 60000;
+  const now = 7 * 24 * HOUR;
+  const fedBottle = (at: number) => ({ events: [event("made", at - 10 * MIN), event("feed", at), event("finish", at + 15 * MIN)] });
+
+  it("uses the middle half of gaps over the last 7 days", () => {
+    const bottles = [];
+    for (let at = 3 * HOUR; at < now; at += 3 * HOUR) bottles.push(fedBottle(at));
+    expect(feedingRhythm(bottles, now)).toEqual({ minGap: 3 * HOUR, maxGap: 3 * HOUR });
+  });
+
+  it("spreads between the quartiles", () => {
+    const starts = [0, 2, 5, 8, 12].map((h) => now - 13 * HOUR + h * HOUR);
+    expect(feedingRhythm(starts.map(fedBottle), now)).toEqual({ minGap: 2.75 * HOUR, maxGap: 3.25 * HOUR });
+  });
+
+  it("skips top-ups, missed logs and anything older than 7 days", () => {
+    const starts = [-200 * HOUR, 10 * HOUR, 10 * HOUR + 20 * MIN, 13 * HOUR, 30 * HOUR];
+    expect(feedingRhythm(starts.map(fedBottle), 31 * HOUR)).toEqual({ minGap: 2 * HOUR + 40 * MIN, maxGap: 2 * HOUR + 40 * MIN });
+  });
+
+  it("uses the last 7 days with data after a break", () => {
+    const starts = [-200 * HOUR, 10 * HOUR, 12 * HOUR, 15 * HOUR];
+    expect(feedingRhythm(starts.map(fedBottle), 40 * 24 * HOUR)).toEqual({ minGap: 2.25 * HOUR, maxGap: 2.75 * HOUR });
+  });
+
+  it("is unknown without any usable gap", () => {
+    expect(feedingRhythm([fedBottle(now - HOUR)], now)).toBeNull();
+  });
+
+  it("adds the rhythm to the last feeding", () => {
+    expect(estimateFromRhythm(10 * HOUR, { minGap: 2 * HOUR, maxGap: 3 * HOUR })).toEqual({ lastFedAt: 10 * HOUR, from: 12 * HOUR, to: 13 * HOUR });
+  });
+});
+
+describe("averageIntake", () => {
+  const now = 8 * 24 * HOUR;
+  const finished = (at: number, amountMl?: number) => ({ amountMl, events: [event("made", at - HOUR), event("finish", at)] });
+
+  it("averages finished bottles over the last 7 days", () => {
+    const bottles = [finished(now - HOUR, 120), finished(now - 3 * 24 * HOUR, 100), finished(now - 6 * 24 * HOUR, 80)];
+    expect(averageIntake(bottles, now)).toEqual({ perDay: 43, perFeed: 100 });
+  });
+
+  it("skips older, unmeasured and discarded bottles", () => {
+    const discarded = { amountMl: 90, events: [event("made", now - 2 * HOUR), event("discard", now - HOUR)] };
+    const bottles = [finished(now - HOUR, 140), finished(now - 2 * HOUR), finished(now - 8 * 24 * HOUR, 200), discarded];
+    expect(averageIntake(bottles, now)).toEqual({ perDay: 20, perFeed: 140 });
+  });
+
+  it("uses the last 7 days with data after a break", () => {
+    const bottles = [finished(now - HOUR, 120), finished(now - 6 * 24 * HOUR, 90), finished(now - 9 * 24 * HOUR, 200)];
+    expect(averageIntake(bottles, now + 30 * 24 * HOUR)).toEqual({ perDay: 30, perFeed: 105 });
+  });
+
+  it("is unknown without any measured bottle", () => {
+    expect(averageIntake([finished(now - HOUR)], now)).toBeNull();
   });
 });

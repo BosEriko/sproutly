@@ -3,7 +3,7 @@
 import { AlarmClock } from "lucide-react";
 import { ageInDays, type BabyProfile } from "@/lib/baby";
 import type { Bottle } from "@/lib/bottles";
-import { estimateNextFeeding, feedingInterval, lastFedAt } from "@/lib/feeding";
+import { estimateFromRhythm, estimateNextFeeding, feedingInterval, feedingRhythm, lastFedAt, RHYTHM_DAYS } from "@/lib/feeding";
 
 const MINUTE = 60 * 1000;
 
@@ -34,8 +34,9 @@ function Shell({ children }: { children: React.ReactNode }) {
 
 export function NextFeedingCard({ profile, bottles, now }: { profile: BabyProfile | null; bottles: Bottle[]; now: number }) {
   const name = profile?.name || "your baby";
+  const rhythm = feedingRhythm(bottles, now);
 
-  if (!profile?.birthday) {
+  if (!rhythm && !profile?.birthday) {
     return (
       <Shell>
         <p className="mt-2 text-muted">Add {name}&apos;s birthday to see when the next feeding is likely.</p>
@@ -54,9 +55,22 @@ export function NextFeedingCard({ profile, bottles, now }: { profile: BabyProfil
     );
   }
 
-  const ageDays = ageInDays(profile.birthday, new Date(now));
-  const { minHours, maxHours } = feedingInterval(ageDays);
-  const { from, to } = estimateNextFeeding(lastFed, ageDays);
+  let from: number;
+  let to: number;
+  let basis: string;
+  if (rhythm) {
+    ({ from, to } = estimateFromRhythm(lastFed, rhythm));
+    const gap =
+      Math.round(rhythm.minGap / MINUTE) === Math.round(rhythm.maxGap / MINUTE)
+        ? formatDuration(rhythm.minGap)
+        : `${formatDuration(rhythm.minGap)}–${formatDuration(rhythm.maxGap)}`;
+    basis = `usually every ${gap}, based on the last ${RHYTHM_DAYS} days.`;
+  } else {
+    const ageDays = ageInDays(profile!.birthday!, new Date(now));
+    const { minHours, maxHours } = feedingInterval(ageDays);
+    ({ from, to } = estimateNextFeeding(lastFed, ageDays));
+    basis = `every ${minHours}–${maxHours} hours is typical at ${name}'s age.`;
+  }
 
   let headline: string;
   let detail: string;
@@ -80,8 +94,7 @@ export function NextFeedingCard({ profile, bottles, now }: { profile: BabyProfil
       <p className={`mt-1 font-hand text-5xl leading-tight font-bold ${tone}`}>{headline}</p>
       <p>{detail}</p>
       <p className="mt-2 text-xs text-muted">
-        Last fed {formatTime(lastFed)} · every {minHours}–{maxHours} hours is typical at {name}&apos;s age. Hunger cues come
-        first; this is only a guide.
+        Last fed {formatTime(lastFed)} · {basis} Hunger cues come first; this is only a guide.
       </p>
     </Shell>
   );

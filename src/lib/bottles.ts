@@ -97,7 +97,7 @@ export function subscribeBottles(
   onChange: (bottles: Bottle[]) => void,
   onError: (error: Error) => void,
 ): () => void {
-  const q = query(collection(clientDb(), BOTTLES_COLLECTION), orderBy("madeAt", "desc"), limit(20));
+  const q = query(collection(clientDb(), BOTTLES_COLLECTION), orderBy("madeAt", "desc"), limit(100));
   return onSnapshot(
     q,
     (snap) => onChange(snap.docs.map((d) => toBottle(d.id, d.data()))),

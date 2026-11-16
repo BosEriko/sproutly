@@ -3,7 +3,7 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import type { User } from "firebase/auth";
 import { Alert, Button } from "antd";
-import { Bath, Droplet, Milk, Sun, type LucideIcon } from "lucide-react";
+import { Bath, CalendarDays, Droplet, Milk, Sun, type LucideIcon } from "lucide-react";
 import { AuthGate } from "@/components/AuthGate";
 import { BabyCard } from "@/components/BabyCard";
 import { BabyDrawer } from "@/components/BabyDrawer";
@@ -13,7 +13,7 @@ import { DiaperCard } from "@/components/DiaperCard";
 import { DinoLoader } from "@/components/DinoLoader";
 import { EntryMenu } from "@/components/EntryMenu";
 import { FinishDialog } from "@/components/FinishDialog";
-import { HistoryItem, RecentCard } from "@/components/History";
+import { Facts, HistoryItem, RecentCard } from "@/components/History";
 import { END_ICONS } from "@/components/icons";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { Logo } from "@/components/Logo";
@@ -29,7 +29,7 @@ import {
   updateBottleAmount,
   type Bottle,
 } from "@/lib/bottles";
-import { feedingDuration, finishedTitle, idealFeedMl } from "@/lib/feeding";
+import { averageIntake, feedingDuration, finishedTitle, idealFeedMl, RHYTHM_DAYS } from "@/lib/feeding";
 import { notifyDiscord } from "@/lib/notify";
 import { subscribeProfile } from "@/lib/profile";
 import type { Action } from "@/lib/spoil";
@@ -162,6 +162,7 @@ function Tracker({ user }: { user: User }) {
 
   const active = bottles?.filter((b) => b.status !== "done") ?? [];
   const history = bottles?.filter((b) => b.status === "done").slice(0, 10) ?? [];
+  const intake = bottles ? averageIntake(bottles, now) : null;
 
   return (
     <main className="mx-auto flex max-w-lg flex-col gap-6 px-4 pt-6 pb-[calc(3rem+env(safe-area-inset-bottom))]">
@@ -231,7 +232,21 @@ function Tracker({ user }: { user: User }) {
           )}
 
           {bottles !== null && (
-            <RecentCard tape="var(--tape-neutral)" tilt={-0.5} empty="No finished bottles yet">
+            <RecentCard
+              tape="var(--tape-neutral)"
+              tilt={-0.5}
+              aside={
+                intake && (
+                  <Facts
+                    items={[
+                      { icon: <CalendarDays size={13} />, text: `${intake.perDay}ml/day`, label: `Average per day, last ${RHYTHM_DAYS} days` },
+                      { icon: <Milk size={13} />, text: `${intake.perFeed}ml/feed`, label: `Average per feed, last ${RHYTHM_DAYS} days` },
+                    ]}
+                  />
+                )
+              }
+              empty="No finished bottles yet"
+            >
               {history.map((b) => {
                 const last = b.events[b.events.length - 1];
                 const discarded = b.endReason === "discarded";

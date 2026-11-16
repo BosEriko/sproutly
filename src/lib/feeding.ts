@@ -19,11 +19,16 @@ export function feedingInterval(ageDays: number): FeedingInterval {
   return { minHours: 4, maxHours: 5 };
 }
 
+function fedAt(bottle: Pick<Bottle, "events">): number | null {
+  const feed = bottle.events.find((e) => e.type === "feed") ?? bottle.events.find((e) => e.type === "finish");
+  return feed ? feed.at : null;
+}
+
 export function lastFedAt(bottles: Pick<Bottle, "events">[]): number | null {
   let latest: number | null = null;
   for (const bottle of bottles) {
-    const feed = bottle.events.find((e) => e.type === "feed") ?? bottle.events.find((e) => e.type === "finish");
-    if (feed && (latest === null || feed.at > latest)) latest = feed.at;
+    const at = fedAt(bottle);
+    if (at !== null && (latest === null || at > latest)) latest = at;
   }
   return latest;
 }
@@ -31,6 +36,47 @@ export function lastFedAt(bottles: Pick<Bottle, "events">[]): number | null {
 export function estimateNextFeeding(lastFed: number, ageDays: number): FeedingEstimate {
   const { minHours, maxHours } = feedingInterval(ageDays);
   return { lastFedAt: lastFed, from: lastFed + minHours * HOUR, to: lastFed + maxHours * HOUR };
+}
+
+const DAY = 24 * HOUR;
+export const RHYTHM_DAYS = 7;
+const MIN_GAP = 45 * 60 * 1000;
+const MAX_GAP = 8 * HOUR;
+
+export interface FeedingRhythm {
+  minGap: number;
+  maxGap: number;
+}
+
+function quantile(sorted: number[], q: number): number {
+  const pos = (sorted.length - 1) * q;
+  const lo = Math.floor(pos);
+  const hi = Math.ceil(pos);
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+}
+
+function lastWeek(times: number[], now: number): number[] {
+  const past = times.filter((at) => at <= now);
+  if (past.length === 0) return [];
+  const latest = Math.max(...past);
+  const end = latest >= now - RHYTHM_DAYS * DAY ? now : latest;
+  return past.filter((at) => at >= end - RHYTHM_DAYS * DAY);
+}
+
+export function feedingRhythm(bottles: Pick<Bottle, "events">[], now: number): FeedingRhythm | null {
+  const fed = bottles.map(fedAt).filter((at): at is number => at !== null);
+  const times = lastWeek(fed, now).sort((a, b) => a - b);
+  const gaps = times
+    .slice(1)
+    .map((at, i) => at - times[i])
+    .filter((gap) => gap >= MIN_GAP && gap <= MAX_GAP)
+    .sort((a, b) => a - b);
+  if (gaps.length === 0) return null;
+  return { minGap: quantile(gaps, 0.25), maxGap: quantile(gaps, 0.75) };
+}
+
+export function estimateFromRhythm(lastFed: number, rhythm: FeedingRhythm): FeedingEstimate {
+  return { lastFedAt: lastFed, from: lastFed + rhythm.minGap, to: lastFed + rhythm.maxGap };
 }
 
 const ML_PER_KG_PER_DAY = 150;
@@ -75,4 +121,21 @@ export function finishedTitle(amountMl: number | undefined, durationMs: number |
   const minutes = durationMs === null ? null : Math.max(1, Math.round(durationMs / 60000));
   const within = minutes === null ? "" : ` within ${minutes} ${minutes === 1 ? "minute" : "minutes"}`;
   return amountMl ? `${amountMl}ml${within}` : `Finished${within}`;
+}
+
+export interface IntakeAverage {
+  perDay: number;
+  perFeed: number;
+}
+
+export function averageIntake(bottles: Pick<Bottle, "events" | "amountMl">[], now: number): IntakeAverage | null {
+  const measured = bottles.flatMap((b) => {
+    const finish = b.events.find((e) => e.type === "finish");
+    return b.amountMl && finish ? [{ at: finish.at, ml: b.amountMl }] : [];
+  });
+  const window = new Set(lastWeek(measured.map((m) => m.at), now));
+  const amounts = measured.filter((m) => window.has(m.at)).map((m) => m.ml);
+  if (amounts.length === 0) return null;
+  const total = amounts.reduce((sum, ml) => sum + ml, 0);
+  return { perDay: Math.round(total / RHYTHM_DAYS), perFeed: Math.round(total / amounts.length) };
 }
