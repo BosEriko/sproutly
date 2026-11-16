@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { ageInDays } from "./baby";
 import type { BottleEvent } from "./bottles";
-import { estimateNextFeeding, feedingInterval, feedsPerDay, idealFeedMl, lastFedAt } from "./feeding";
+import {
+  durationLabel,
+  estimateNextFeeding,
+  feedingDuration,
+  feedingInterval,
+  feedsPerDay,
+  idealFeedMl,
+  lastFedAt,
+} from "./feeding";
 
 const HOUR = 60 * 60 * 1000;
 const event = (type: BottleEvent["type"], at: number): BottleEvent => ({ type, at, by: "u", byName: "u" });
@@ -68,5 +76,26 @@ describe("idealFeedMl", () => {
     expect(idealFeedMl(45, null)).toBe(120);
     expect(idealFeedMl(null, null)).toBe(120);
     expect(idealFeedMl(null, 6)).toBe(130);
+  });
+});
+
+describe("feedingDuration", () => {
+  const MIN = 60000;
+
+  it("measures from Started feeding to Finished", () => {
+    expect(feedingDuration({ events: [event("made", 0), event("feed", 10 * MIN), event("finish", 28 * MIN)] })).toBe(18 * MIN);
+  });
+
+  it("is unknown without both taps", () => {
+    expect(feedingDuration({ events: [event("made", 0), event("finish", 28 * MIN)] })).toBeNull();
+    expect(feedingDuration({ events: [event("made", 0), event("feed", 10 * MIN), event("discard", 20 * MIN)] })).toBeNull();
+  });
+});
+
+describe("durationLabel", () => {
+  it("shows minutes, then hours", () => {
+    expect(durationLabel(20 * 1000)).toBe("1m");
+    expect(durationLabel(18 * 60000)).toBe("18m");
+    expect(durationLabel(75 * 60000)).toBe("1h 15m");
   });
 });

@@ -3,12 +3,20 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import type { User } from "firebase/auth";
 import { Button } from "antd";
-import { Bath as BathIcon } from "lucide-react";
+import { Bath as BathIcon, CalendarDays } from "lucide-react";
 import { daysAgoLabel, type Bath } from "@/lib/bath";
 import { deleteBath, logBath, subscribeBaths, updateBath } from "@/lib/baths";
 import { EntryMenu } from "./EntryMenu";
-import { HoldHint, HoldRow } from "./HoldRow";
+import { HistoryItem, RecentCard } from "./History";
 import { WhenDialog } from "./WhenDialog";
+
+function formatDate(ms: number) {
+  return new Date(ms).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+}
+
+function formatTime(ms: number) {
+  return new Date(ms).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
 
 function formatDateTime(ms: number) {
   return new Date(ms).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
@@ -41,8 +49,6 @@ export function BathCard({ user, now }: { user: User; now: number }) {
     setSelected(null);
   };
 
-  const last = baths?.[0];
-
   return (
     <>
       <Button
@@ -58,40 +64,28 @@ export function BathCard({ user, now }: { user: User; now: number }) {
         Bath time
       </Button>
 
-      <section className="paper -rotate-[0.5deg] rounded-sm px-5 pt-7 pb-4">
-        <span className="tape" style={{ background: "rgb(217 205 243 / 0.85)" }} />
-        <h2 className="font-hand text-3xl font-bold">Recent</h2>
-        <p className="text-sm text-muted">
-          {last ? `Last bath ${daysAgoLabel(last.at, now).toLowerCase()} · ${formatDateTime(last.at)}` : "No baths logged yet"}
-        </p>
-
-        {error && <p className="mt-2 text-sm text-danger">{error}</p>}
-
-        {baths && baths.length > 0 && (
-          <>
-            <ul className="mt-3 divide-y divide-line">
-              {baths.map((b) => (
-                <HoldRow
-                  key={b.id}
-                  label={`Bath ${formatDateTime(b.at)}`}
-                  color="var(--sticky-lavender)"
-                  className="h-10 text-sm"
-                  onHold={() => {
-                    setSelected(b);
-                    setMode("menu");
-                  }}
-                >
-                  <span>{daysAgoLabel(b.at, now)}</span>
-                  <span className="text-muted">{formatDateTime(b.at)}</span>
-                </HoldRow>
-              ))}
-            </ul>
-            <div className="mt-2">
-              <HoldHint />
-            </div>
-          </>
-        )}
-      </section>
+      <RecentCard
+        tape="rgb(217 205 243 / 0.85)"
+        tilt={-0.5}
+        empty="No baths logged yet"
+        error={error}
+      >
+        {(baths ?? []).map((b) => (
+          <HistoryItem
+            key={b.id}
+            icon={<BathIcon size={15} />}
+            title={daysAgoLabel(b.at, now)}
+            facts={[{ icon: <CalendarDays size={12} />, text: formatDate(b.at), label: "Date" }]}
+            meta={formatTime(b.at)}
+            color="var(--sticky-lavender)"
+            label={`Bath ${formatDateTime(b.at)}`}
+            onHold={() => {
+              setSelected(b);
+              setMode("menu");
+            }}
+          />
+        ))}
+      </RecentCard>
 
       <EntryMenu
         open={mode === "menu"}

@@ -3,17 +3,12 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import type { User } from "firebase/auth";
 import { Button } from "antd";
-import { Check, Sun } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, Sun } from "lucide-react";
 import { dateKey, formatDateKey, type SunlightDay } from "@/lib/sunlight";
 import { deleteSunlight, logSunlight, subscribeSunlight, updateSunlight } from "@/lib/sunlightDays";
 import { EntryMenu } from "./EntryMenu";
-import { HoldHint, HoldRow } from "./HoldRow";
+import { HistoryItem, RecentCard } from "./History";
 import { SunlightDialog } from "./SunlightDialog";
-
-function minutesText(day: SunlightDay) {
-  if (day.frontMin === null && day.backMin === null) return "";
-  return `Front ${day.frontMin ?? 0} min · Back ${day.backMin ?? 0} min`;
-}
 
 export function SunlightCard({ user, now }: { user: User; now: number }) {
   const [days, setDays] = useState<SunlightDay[] | null>(null);
@@ -61,41 +56,30 @@ export function SunlightCard({ user, now }: { user: User; now: number }) {
         {doneToday ? "Sunlight done today" : "Morning sunlight"}
       </Button>
 
-      <section className="paper rotate-[0.5deg] rounded-sm px-5 pt-7 pb-4">
-        <span className="tape" style={{ background: "var(--tape-room)" }} />
-        <h2 className="font-hand text-3xl font-bold">Recent</h2>
-        {days && days.length === 0 && <p className="text-sm text-muted">No sunlight logged yet</p>}
-
-        {error && <p className="mt-2 text-sm text-danger">{error}</p>}
-
-        {days && days.length > 0 && (
-          <>
-            <ul className="mt-2 divide-y divide-line">
-              {days.map((d) => (
-                <HoldRow
-                  key={d.date}
-                  label={`Sunlight ${label(d.date)}`}
-                  color="var(--sticky-sun)"
-                  className="h-10 text-sm"
-                  onHold={() => {
-                    setSelected(d);
-                    setMode("menu");
-                  }}
-                >
-                  <span className="flex items-center gap-2">
-                    <Sun size={14} aria-hidden className="text-warn" />
-                    {label(d.date)}
-                  </span>
-                  <span className="text-muted">{minutesText(d)}</span>
-                </HoldRow>
-              ))}
-            </ul>
-            <div className="mt-2">
-              <HoldHint />
-            </div>
-          </>
-        )}
-      </section>
+      <RecentCard tape="var(--tape-room)" empty="No sunlight logged yet" error={error}>
+        {(days ?? []).map((d) => (
+          <HistoryItem
+            key={d.date}
+            icon={<Sun size={15} />}
+            title={label(d.date)}
+            facts={
+              d.frontMin === null && d.backMin === null
+                ? []
+                : [
+                    { icon: <ArrowUp size={12} />, text: `${d.frontMin ?? 0}m`, label: "Front" },
+                    { icon: <ArrowDown size={12} />, text: `${d.backMin ?? 0}m`, label: "Back" },
+                  ]
+            }
+            meta={d.frontMin !== null || d.backMin !== null ? `${(d.frontMin ?? 0) + (d.backMin ?? 0)}m` : undefined}
+            color="var(--sticky-sun)"
+            label={`Sunlight ${label(d.date)}`}
+            onHold={() => {
+              setSelected(d);
+              setMode("menu");
+            }}
+          />
+        ))}
+      </RecentCard>
 
       <SunlightDialog
         open={mode === "log" || mode === "edit"}

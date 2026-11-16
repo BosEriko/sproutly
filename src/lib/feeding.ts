@@ -63,3 +63,18 @@ export function idealFeedMl(ageDays: number | null, weightKg: number | null): nu
   if (ageDays !== null) return mlByAge(ageDays);
   return 120;
 }
+
+export function feedingDuration(bottle: Pick<Bottle, "events">): number | null {
+  const start = bottle.events.find((e) => e.type === "feed");
+  const end = bottle.events.find((e) => e.type === "finish");
+  if (!start || !end || end.at < start.at) return null;
+  return end.at - start.at;
+}
+
+export function durationLabel(ms: number): string {
+  const minutes = Math.max(1, Math.round(ms / 60000));
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h === 0) return `${m}m`;
+  return m ? `${h}h ${m}m` : `${h}h`;
+}

@@ -3,7 +3,7 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import type { User } from "firebase/auth";
 import { Alert, Button } from "antd";
-import { Bath, Droplet, Milk, Sun, type LucideIcon } from "lucide-react";
+import { Bath, Droplet, Milk, Sun, Timer, type LucideIcon } from "lucide-react";
 import { AuthGate } from "@/components/AuthGate";
 import { BabyCard } from "@/components/BabyCard";
 import { BabyDrawer } from "@/components/BabyDrawer";
@@ -13,7 +13,7 @@ import { DiaperCard } from "@/components/DiaperCard";
 import { DinoLoader } from "@/components/DinoLoader";
 import { EntryMenu } from "@/components/EntryMenu";
 import { FinishDialog } from "@/components/FinishDialog";
-import { HoldHint, HoldRow } from "@/components/HoldRow";
+import { HistoryItem, RecentCard } from "@/components/History";
 import { END_ICONS } from "@/components/icons";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { Logo } from "@/components/Logo";
@@ -29,7 +29,7 @@ import {
   updateBottleAmount,
   type Bottle,
 } from "@/lib/bottles";
-import { idealFeedMl } from "@/lib/feeding";
+import { durationLabel, feedingDuration, idealFeedMl } from "@/lib/feeding";
 import { notifyDiscord } from "@/lib/notify";
 import { subscribeProfile } from "@/lib/profile";
 import type { Action } from "@/lib/spoil";
@@ -69,6 +69,10 @@ function useTab() {
     } catch {}
   };
   return [tab, choose] as const;
+}
+
+function formatTime(ms: number) {
+  return new Date(ms).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
 function formatDateTime(ms: number) {
@@ -226,42 +230,36 @@ function Tracker({ user }: { user: User }) {
             </section>
           )}
 
-          {history.length > 0 && (
-            <section className="paper mt-2 -rotate-[0.5deg] rounded-sm px-5 pt-8 pb-3">
-              <span className="tape" />
-              <h2 className="font-hand text-3xl font-bold leading-[44px]">Recent</h2>
-              <ul className="divide-y divide-line">
-                {history.map((b) => {
-                  const last = b.events[b.events.length - 1];
-                  const discarded = b.endReason === "discarded";
-                  const EndIcon = END_ICONS[discarded ? "discarded" : "finished"];
-                  const time = last ? new Date(last.at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "";
-                  return (
-                    <HoldRow
-                      key={b.id}
-                      label={`Bottle made ${formatDateTime(b.madeAt)}, ${discarded ? "discarded" : "finished"}`}
-                      color={discarded ? "var(--sticky-pink)" : "var(--sticky-mint)"}
-                      className="h-11 text-sm"
-                      onHold={() => {
-                        setPicked(b);
-                        setHistoryMode("menu");
-                      }}
-                    >
-                      <span>Made {formatDateTime(b.madeAt)}</span>
-                      <span className={`flex items-center gap-1 ${discarded ? "text-danger" : "text-muted"}`}>
-                        <EndIcon size={14} aria-hidden />
-                        {discarded ? "Discarded" : "Finished"}
-                        {b.amountMl ? ` · ${b.amountMl} ml` : ""}
-                        {time ? ` · ${time}` : ""}
-                      </span>
-                    </HoldRow>
-                  );
-                })}
-              </ul>
-              <div className="mt-2">
-                <HoldHint />
-              </div>
-            </section>
+          {bottles !== null && (
+            <RecentCard tape="var(--tape-neutral)" tilt={-0.5} empty="No finished bottles yet">
+              {history.map((b) => {
+                const last = b.events[b.events.length - 1];
+                const discarded = b.endReason === "discarded";
+                const EndIcon = END_ICONS[discarded ? "discarded" : "finished"];
+                const duration = feedingDuration(b);
+                return (
+                  <HistoryItem
+                    key={b.id}
+                    icon={<EndIcon size={15} />}
+                    title={discarded ? "Discarded" : b.amountMl ? `${b.amountMl} ml` : "Finished"}
+                    facts={[
+                      { icon: <Milk size={12} />, text: formatDateTime(b.madeAt), label: "Made" },
+                      ...(duration !== null
+                        ? [{ icon: <Timer size={12} />, text: durationLabel(duration), label: "Feeding time" }]
+                        : []),
+                    ]}
+                    meta={last ? formatTime(last.at) : undefined}
+                    color={discarded ? "var(--sticky-pink)" : "var(--sticky-mint)"}
+                    danger={discarded}
+                    label={`Bottle made ${formatDateTime(b.madeAt)}, ${discarded ? "discarded" : "finished"}`}
+                    onHold={() => {
+                      setPicked(b);
+                      setHistoryMode("menu");
+                    }}
+                  />
+                );
+              })}
+            </RecentCard>
           )}
         </>
       )}

@@ -3,11 +3,11 @@
 import { useEffect, useState, type CSSProperties, type SVGProps } from "react";
 import type { User } from "firebase/auth";
 import { Button } from "antd";
-import { Droplet } from "lucide-react";
+import { Clock, Droplet } from "lucide-react";
 import { changesToday, countDiapers, DIAPER_KINDS, DIAPER_LABELS, type DiaperChange, type DiaperKind } from "@/lib/diaper";
 import { deleteDiaper, logDiaper, subscribeDiapers, updateDiaper } from "@/lib/diapers";
 import { EntryMenu } from "./EntryMenu";
-import { HoldHint, HoldRow } from "./HoldRow";
+import { Facts, HistoryItem, RecentCard } from "./History";
 import { WhenDialog } from "./WhenDialog";
 
 function DirtyIcon({ size = 16, ...props }: SVGProps<SVGSVGElement> & { size?: number }) {
@@ -112,51 +112,36 @@ export function DiaperCard({ user, now }: { user: User; now: number }) {
         ))}
       </div>
 
-      <section className="paper rotate-[0.5deg] rounded-sm px-5 pt-7 pb-4">
-        <span className="tape" style={{ background: "var(--tape-fridge)" }} />
-        <div className="flex items-baseline justify-between">
-          <h2 className="font-hand text-3xl font-bold">Recent</h2>
-          <span className="text-sm text-muted">
-            Today: {counts.wet} wet · {counts.dirty} dirty
-          </span>
-        </div>
-        <p className="text-sm text-muted">
-          {last ? `Last change ${formatTime(last.at)} · ${formatAgo(now - last.at)}` : "No changes logged yet"}
-        </p>
-
-        {error && <p className="mt-2 text-sm text-danger">{error}</p>}
-
-        {today.length > 0 && (
-          <>
-            <ul className="mt-3 divide-y divide-line">
-              {today.map((c) => (
-                <HoldRow
-                  key={c.id}
-                  label={`${DIAPER_LABELS[c.kind]} at ${formatTime(c.at)}`}
-                  color={STICKY[c.kind]}
-                  className="h-10 text-sm"
-                  onHold={() => {
-                    setSelected(c);
-                    setEditKind(c.kind);
-                    setMode("menu");
-                  }}
-                >
-                  <span className="flex items-center gap-2">
-                    <span className="text-muted">
-                      <KindIcon kind={c.kind} size={14} />
-                    </span>
-                    {DIAPER_LABELS[c.kind]}
-                  </span>
-                  <span className="text-muted">{formatTime(c.at)}</span>
-                </HoldRow>
-              ))}
-            </ul>
-            <div className="mt-2">
-              <HoldHint />
-            </div>
-          </>
-        )}
-      </section>
+      <RecentCard
+        tape="var(--tape-fridge)"
+        aside={
+          <Facts
+            items={[
+              { icon: <Droplet size={13} />, text: String(counts.wet), label: "Wet today" },
+              { icon: <DirtyIcon size={13} />, text: String(counts.dirty), label: "Dirty today" },
+              ...(last ? [{ icon: <Clock size={13} />, text: formatAgo(now - last.at), label: "Last change" }] : []),
+            ]}
+          />
+        }
+        empty="No changes logged yet"
+        error={error}
+      >
+        {today.map((c) => (
+          <HistoryItem
+            key={c.id}
+            icon={<KindIcon kind={c.kind} size={15} />}
+            title={DIAPER_LABELS[c.kind]}
+            meta={formatTime(c.at)}
+            color={STICKY[c.kind]}
+            label={`${DIAPER_LABELS[c.kind]} at ${formatTime(c.at)}`}
+            onHold={() => {
+              setSelected(c);
+              setEditKind(c.kind);
+              setMode("menu");
+            }}
+          />
+        ))}
+      </RecentCard>
 
       <EntryMenu
         open={mode === "menu"}
