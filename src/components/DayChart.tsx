@@ -70,7 +70,7 @@ export function DayChart({
               aria-hidden
               viewBox={`0 0 100 ${PLOT_HEIGHT}`}
               preserveAspectRatio="none"
-              className="pointer-events-none absolute inset-x-0 bottom-0 overflow-visible"
+              className="pointer-events-none absolute inset-x-0 bottom-0 w-full overflow-visible"
               style={{ height: PLOT_HEIGHT }}
             >
               {series.map((s) => (
@@ -104,7 +104,7 @@ export function DayChart({
                       key={i}
                       aria-hidden
                       className="pointer-events-none absolute -translate-x-1/2 text-xs text-muted tabular-nums"
-                      style={{ left: `${x(i)}%`, bottom: (v / max) * PLOT_HEIGHT + 6 }}
+                      style={{ left: `${x(i)}%`, bottom: (v / max) * PLOT_HEIGHT + 8 }}
                     >
                       {format(v)}
                     </span>
