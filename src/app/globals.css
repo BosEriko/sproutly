@@ -214,8 +214,8 @@
   }
 
   .pen-circle path {
-    stroke-dasharray: 1;
-    stroke-dashoffset: 1;
+    stroke-dasharray: var(--pen-length, 1);
+    stroke-dashoffset: var(--pen-length, 1);
     animation: pen-draw 450ms ease-out forwards;
   }
 

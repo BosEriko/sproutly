@@ -5,7 +5,10 @@ import type { User } from "firebase/auth";
 import { Button } from "antd";
 import { Clock, Droplet } from "lucide-react";
 import { changesToday, countDiapers, DIAPER_KINDS, DIAPER_LABELS, type DiaperChange, type DiaperKind } from "@/lib/diaper";
+import { recentDayKeys, totalsByDay } from "@/lib/days";
+import { dateKey } from "@/lib/sunlight";
 import { deleteDiaper, logDiaper, subscribeDiapers, updateDiaper } from "@/lib/diapers";
+import { DayChart } from "./DayChart";
 import { EntryMenu } from "./EntryMenu";
 import { Facts, HistoryItem, RecentCard } from "./History";
 import { WhenDialog } from "./WhenDialog";
@@ -92,6 +95,7 @@ export function DiaperCard({ user, now }: { user: User; now: number }) {
   const today = changes ? changesToday(changes, new Date(now)) : [];
   const counts = countDiapers(today);
   const last = changes?.[0];
+  const chartDays = recentDayKeys(now);
 
   return (
     <>
@@ -114,6 +118,7 @@ export function DiaperCard({ user, now }: { user: User; now: number }) {
 
       <RecentCard
         tape="var(--tape-fridge)"
+        color="var(--sticky-blue)"
         aside={
           <Facts
             items={[
@@ -125,6 +130,21 @@ export function DiaperCard({ user, now }: { user: User; now: number }) {
         }
         empty="No changes logged yet"
         error={error}
+        graph={
+          <DayChart
+            days={chartDays}
+            today={dateKey(now)}
+            series={DIAPER_KINDS.map((kind) => ({
+              label: DIAPER_LABELS[kind],
+              color: STICKY[kind],
+              values: totalsByDay(
+                (changes ?? []).filter((c) => c.kind === kind),
+                chartDays,
+                (c) => dateKey(c.at),
+              ),
+            }))}
+          />
+        }
       >
         {today.slice(0, 20).map((c) => (
           <HistoryItem

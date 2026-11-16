@@ -5,7 +5,10 @@ import type { User } from "firebase/auth";
 import { Button } from "antd";
 import { Bath as BathIcon, CalendarDays } from "lucide-react";
 import { daysAgoLabel, type Bath } from "@/lib/bath";
+import { recentDayKeys, totalsByDay } from "@/lib/days";
+import { dateKey } from "@/lib/sunlight";
 import { deleteBath, logBath, subscribeBaths, updateBath } from "@/lib/baths";
+import { DayChart } from "./DayChart";
 import { EntryMenu } from "./EntryMenu";
 import { HistoryItem, RecentCard } from "./History";
 import { WhenDialog } from "./WhenDialog";
@@ -44,6 +47,8 @@ export function BathCard({ user, now }: { user: User; now: number }) {
     }
   }
 
+  const chartDays = recentDayKeys(now);
+
   const close = () => {
     setMode(null);
     setSelected(null);
@@ -66,9 +71,19 @@ export function BathCard({ user, now }: { user: User; now: number }) {
 
       <RecentCard
         tape="rgb(217 205 243 / 0.85)"
+        color="var(--sticky-lavender)"
         tilt={-0.5}
         empty="No baths logged yet"
         error={error}
+        graph={
+          <DayChart
+            days={chartDays}
+            today={dateKey(now)}
+            series={[
+              { label: "Baths", color: "var(--sticky-lavender)", values: totalsByDay(baths ?? [], chartDays, (b) => dateKey(b.at)) },
+            ]}
+          />
+        }
       >
         {(baths ?? []).map((b) => (
           <HistoryItem

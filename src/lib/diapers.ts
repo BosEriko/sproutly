@@ -9,7 +9,7 @@ export function subscribeDiapers(
   onChange: (changes: DiaperChange[]) => void,
   onError: (error: Error) => void,
 ): () => void {
-  const q = query(collection(clientDb(), DIAPERS_COLLECTION), orderBy("at", "desc"), limit(40));
+  const q = query(collection(clientDb(), DIAPERS_COLLECTION), orderBy("at", "desc"), limit(150));
   return onSnapshot(
     q,
     (snap) =>

@@ -10,6 +10,7 @@ import { BabyDrawer } from "@/components/BabyDrawer";
 import { BathCard } from "@/components/BathCard";
 import { BottleCard } from "@/components/BottleCard";
 import { DiaperCard } from "@/components/DiaperCard";
+import { DayChart } from "@/components/DayChart";
 import { DinoLoader } from "@/components/DinoLoader";
 import { EntryMenu } from "@/components/EntryMenu";
 import { FinishDialog } from "@/components/FinishDialog";
@@ -29,10 +30,12 @@ import {
   updateBottleAmount,
   type Bottle,
 } from "@/lib/bottles";
+import { recentDayKeys, totalsByDay } from "@/lib/days";
 import { averageIntake, feedingDuration, finishedTitle, idealFeedMl, RHYTHM_DAYS } from "@/lib/feeding";
 import { notifyDiscord } from "@/lib/notify";
 import { subscribeProfile } from "@/lib/profile";
 import type { Action } from "@/lib/spoil";
+import { dateKey } from "@/lib/sunlight";
 
 function useNow(intervalMs = 1000) {
   const [now, setNow] = useState(() => Date.now());
@@ -163,6 +166,16 @@ function Tracker({ user }: { user: User }) {
   const active = bottles?.filter((b) => b.status !== "done") ?? [];
   const history = bottles?.filter((b) => b.status === "done").slice(0, 20) ?? [];
   const intake = bottles ? averageIntake(bottles, now) : null;
+  const chartDays = recentDayKeys(now);
+  const mlPerDay = totalsByDay(
+    bottles ?? [],
+    chartDays,
+    (b) => {
+      const finish = b.events.find((e) => e.type === "finish");
+      return b.amountMl && finish ? dateKey(finish.at) : null;
+    },
+    (b) => b.amountMl ?? 0,
+  );
 
   return (
     <main className="mx-auto flex max-w-lg flex-col gap-6 px-4 pt-6 pb-[calc(3rem+env(safe-area-inset-bottom))]">
@@ -234,6 +247,7 @@ function Tracker({ user }: { user: User }) {
           {bottles !== null && (
             <RecentCard
               tape="var(--tape-neutral)"
+              color="var(--sticky-mint)"
               tilt={-0.5}
               aside={
                 intake && (
@@ -246,6 +260,14 @@ function Tracker({ user }: { user: User }) {
                 )
               }
               empty="No finished bottles yet"
+              graph={
+                <DayChart
+                  days={chartDays}
+                  today={dateKey(now)}
+                  unit="ml"
+                  series={[{ label: "Milk", color: "var(--sticky-mint)", values: mlPerDay }]}
+                />
+              }
             >
               {history.map((b) => {
                 const last = b.events[b.events.length - 1];

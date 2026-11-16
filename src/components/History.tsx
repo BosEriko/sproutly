@@ -1,7 +1,10 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import { Button } from "antd";
+import { ChartColumn, List, type LucideIcon } from "lucide-react";
 import { HoldHint, HoldRow } from "./HoldRow";
+import { PenCircle } from "./PenCircle";
 
 export interface FactItem {
   icon: ReactNode;
@@ -63,42 +66,93 @@ export function HistoryItem({
   );
 }
 
+type View = "recent" | "graphs";
+
+const VIEWS: { value: View; label: string; icon: LucideIcon; tilt: number }[] = [
+  { value: "recent", label: "Recent", icon: List, tilt: -0.8 },
+  { value: "graphs", label: "Graphs", icon: ChartColumn, tilt: 0.8 },
+];
+
+const VIEW_KEY = "sproutly:view";
+
+function useView() {
+  const [view, setView] = useState<View>("recent");
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(VIEW_KEY);
+      if (VIEWS.some((v) => v.value === saved)) setView(saved as View);
+    } catch {}
+  }, []);
+  const choose = (next: View) => {
+    setView(next);
+    try {
+      localStorage.setItem(VIEW_KEY, next);
+    } catch {}
+  };
+  return [view, choose] as const;
+}
+
 export function RecentCard({
   tape,
+  color,
   tilt = 0.5,
   aside,
   empty,
   error,
+  graph,
   children,
 }: {
   tape: string;
+  color: string;
   tilt?: number;
   aside?: ReactNode;
   empty: string;
   error?: string | null;
+  graph: ReactNode;
   children?: ReactNode[];
 }) {
+  const [view, setView] = useView();
   const hasItems = Boolean(children && children.length > 0);
 
   return (
-    <section className="paper rounded-sm px-5 pt-7 pb-4" style={{ rotate: `${tilt}deg` }}>
-      <span className="tape" style={{ background: tape }} />
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="font-hand text-3xl font-bold">Recent</h2>
-        {aside}
-      </div>
-      {!hasItems && <p className="text-sm text-muted">{empty}</p>}
-
-      {error && <p className="mt-2 text-sm text-danger">{error}</p>}
-
-      {hasItems && (
-        <>
-          <ul className="mt-2 divide-y divide-line">{children}</ul>
-          <div className="mt-2">
-            <HoldHint />
+    <div className="flex flex-col gap-6">
+      <div role="tablist" aria-label="View" className="grid grid-cols-2 gap-3">
+        {VIEWS.map(({ value, label, icon: Icon, tilt: noteTilt }) => (
+          <div key={value} className="relative" style={{ rotate: `${noteTilt}deg` }}>
+            <Button
+              type="primary"
+              block
+              role="tab"
+              aria-selected={view === value}
+              icon={<Icon size={18} aria-hidden />}
+              onClick={() => setView(value)}
+              className={`sticky h-12! font-hand text-2xl! ${view === value ? "sticky-active" : "sticky-idle"}`}
+              style={{ "--sticky": color } as CSSProperties}
+            >
+              {label}
+            </Button>
+            {view === value && <PenCircle key={value} className="top-0.5 h-[calc(100%-0.25rem)]" length={3} />}
           </div>
-        </>
-      )}
-    </section>
+        ))}
+      </div>
+      <section className="paper rounded-sm px-5 pt-7 pb-4" style={{ rotate: `${tilt}deg` }}>
+        <span className="tape" style={{ background: tape }} />
+        {aside && <div className="flex justify-end">{aside}</div>}
+        {view === "recent" && !hasItems && <p className="mt-3 text-sm text-muted">{empty}</p>}
+
+        {error && <p className="mt-2 text-sm text-danger">{error}</p>}
+
+        {view === "graphs" && graph}
+
+        {view === "recent" && hasItems && (
+          <>
+            <ul className="mt-3 divide-y divide-line">{children}</ul>
+            <div className="mt-2">
+              <HoldHint />
+            </div>
+          </>
+        )}
+      </section>
+    </div>
   );
 }

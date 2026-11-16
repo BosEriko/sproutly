@@ -5,7 +5,9 @@ import type { User } from "firebase/auth";
 import { Button } from "antd";
 import { ArrowDown, ArrowUp, Check, Sun } from "lucide-react";
 import { dateKey, formatDateKey, type SunlightDay } from "@/lib/sunlight";
+import { recentDayKeys, totalsByDay } from "@/lib/days";
 import { deleteSunlight, logSunlight, subscribeSunlight, updateSunlight } from "@/lib/sunlightDays";
+import { DayChart } from "./DayChart";
 import { EntryMenu } from "./EntryMenu";
 import { HistoryItem, RecentCard } from "./History";
 import { SunlightDialog } from "./SunlightDialog";
@@ -39,6 +41,7 @@ export function SunlightCard({ user, now }: { user: User; now: number }) {
 
   const today = dateKey(now);
   const doneToday = days?.some((d) => d.date === today) ?? false;
+  const chartDays = recentDayKeys(now);
   const label = (date: string) => (date === today ? "Today" : formatDateKey(date));
 
   return (
@@ -56,7 +59,23 @@ export function SunlightCard({ user, now }: { user: User; now: number }) {
         {doneToday ? "Sunlight done today" : "Morning sunlight"}
       </Button>
 
-      <RecentCard tape="var(--tape-room)" empty="No sunlight logged yet" error={error}>
+      <RecentCard
+        tape="var(--tape-room)"
+        color="var(--sticky-sun)"
+        empty="No sunlight logged yet"
+        error={error}
+        graph={
+          <DayChart
+            days={chartDays}
+            today={today}
+            unit="m"
+            series={[
+              { label: "Front", color: "var(--sticky-sun)", values: totalsByDay(days ?? [], chartDays, (d) => d.date, (d) => d.frontMin ?? 0) },
+              { label: "Back", color: "var(--sticky-lavender)", values: totalsByDay(days ?? [], chartDays, (d) => d.date, (d) => d.backMin ?? 0) },
+            ]}
+          />
+        }
+      >
         {(days ?? []).map((d) => (
           <HistoryItem
             key={d.date}
