@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import type { User } from "firebase/auth";
 import { Alert, Button } from "antd";
-import { Bath, CalendarDays, Droplet, Milk, Sun, type LucideIcon } from "lucide-react";
+import { Bath, CalendarDays, Droplet, Maximize, Milk, Sun, type LucideIcon } from "lucide-react";
 import { AlarmPopup, type Alarm } from "@/components/AlarmPopup";
 import { AuthGate } from "@/components/AuthGate";
 import { BabyCard } from "@/components/BabyCard";
@@ -15,6 +15,7 @@ import { DayChart } from "@/components/DayChart";
 import { DinoLoader } from "@/components/DinoLoader";
 import { EntryMenu } from "@/components/EntryMenu";
 import { FinishDialog } from "@/components/FinishDialog";
+import { enterFullscreen, FullscreenView } from "@/components/FullscreenView";
 import { Facts, HistoryItem, RecentCard } from "@/components/History";
 import { END_ICONS } from "@/components/icons";
 import { InstallPrompt } from "@/components/InstallPrompt";
@@ -33,10 +34,12 @@ import {
 } from "@/lib/bottles";
 import { recentDayKeys, totalsByDay } from "@/lib/days";
 import { averageIntake, feedingDuration, finishedTitle, idealFeedMl, nextFeedingWindow, RHYTHM_DAYS } from "@/lib/feeding";
+import { HANDHELD } from "@/lib/install-prompt";
 import { notifyDiscord } from "@/lib/notify";
 import { subscribeProfile } from "@/lib/profile";
 import { isExpired, type Action } from "@/lib/spoil";
 import { dateKey } from "@/lib/sunlight";
+import { useMediaQuery } from "@/lib/use-media-query";
 
 function useNow(intervalMs = 1000) {
   const [now, setNow] = useState(() => Date.now());
@@ -139,6 +142,9 @@ function Tracker({ user }: { user: User }) {
   const [finishing, setFinishing] = useState<string | null>(null);
   const [picked, setPicked] = useState<Bottle | null>(null);
   const [historyMode, setHistoryMode] = useState<"menu" | "edit" | null>(null);
+  const [fullscreen, setFullscreen] = useState(false);
+  const exitFullscreen = useCallback(() => setFullscreen(false), []);
+  const handheld = useMediaQuery(HANDHELD, true);
 
   useEffect(
     () => subscribeBottles(setBottles, (e) => setError(e.message)),
@@ -234,12 +240,45 @@ function Tracker({ user }: { user: User }) {
     (b) => b.amountMl ?? 0,
   );
 
+  const bottleSection =
+    bottles === null ? (
+      <DinoLoader label="Finding bottles…" />
+    ) : active.length === 0 ? (
+      profile !== undefined && <NextFeedingCard profile={profile} bottles={bottles} now={now} />
+    ) : (
+      <section className="flex flex-col gap-8 pt-2">
+        {active.map((b, i) => (
+          <BottleCard
+            key={b.id}
+            bottle={b}
+            now={now}
+            busy={busy}
+            tilt={i % 2 === 0 ? -0.8 : 0.8}
+            onAction={(a) => handleAction(b.id, a)}
+          />
+        ))}
+      </section>
+    );
+
   return (
     <main className="mx-auto flex max-w-lg flex-col gap-6 px-4 pt-6 pb-[calc(3rem+env(safe-area-inset-bottom))]">
-      <header>
+      <header className="relative">
         <h1>
           <Logo size={40} />
         </h1>
+        {!handheld && (
+          <Button
+            type="text"
+            aria-label="Full screen"
+            title="Full screen"
+            icon={<Maximize size={18} aria-hidden />}
+            onClick={() => {
+              enterFullscreen();
+              setFullscreen(true);
+            }}
+            className="absolute! top-1/2 right-0 -translate-y-1/2"
+          />
+        )}
       </header>
 
       {profile !== undefined && (
@@ -282,24 +321,7 @@ function Tracker({ user }: { user: User }) {
             Made milk
           </Button>
 
-          {bottles === null ? (
-            <DinoLoader label="Finding bottles…" />
-          ) : active.length === 0 ? (
-            profile !== undefined && <NextFeedingCard profile={profile} bottles={bottles} now={now} />
-          ) : (
-            <section className="flex flex-col gap-8 pt-2">
-              {active.map((b, i) => (
-                <BottleCard
-                  key={b.id}
-                  bottle={b}
-                  now={now}
-                  busy={busy}
-                  tilt={i % 2 === 0 ? -0.8 : 0.8}
-                  onAction={(a) => handleAction(b.id, a)}
-                />
-              ))}
-            </section>
-          )}
+          {bottleSection}
 
           {bottles !== null && (
             <RecentCard
@@ -382,6 +404,12 @@ function Tracker({ user }: { user: User }) {
         onCancel={closeHistory}
         onConfirm={handleEditAmount}
       />
+
+      {fullscreen && (
+        <FullscreenView now={now} onExit={exitFullscreen}>
+          {bottleSection}
+        </FullscreenView>
+      )}
 
       <AlarmPopup alarms={dueAlarms(bottles, profile, now)} />
 
