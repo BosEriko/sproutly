@@ -12,6 +12,7 @@ import {
   finishedTitle,
   idealFeedMl,
   lastFedAt,
+  nextFeedingWindow,
 } from "./feeding";
 
 const HOUR = 60 * 60 * 1000;
@@ -167,5 +168,21 @@ describe("averageIntake", () => {
 
   it("is unknown without any measured bottle", () => {
     expect(averageIntake([finished(now - HOUR)], now)).toBeNull();
+  });
+});
+
+describe("nextFeedingWindow", () => {
+  const fedBottle = (at: number) => ({ events: [event("feed", at)] });
+
+  it("is null before any feeding", () => {
+    expect(nextFeedingWindow([], 10, 0)).toBeNull();
+  });
+
+  it("falls back to the age-based interval without a rhythm", () => {
+    expect(nextFeedingWindow([fedBottle(0)], 10, HOUR)).toEqual({ lastFedAt: 0, from: 2 * HOUR, to: 3 * HOUR });
+  });
+
+  it("is null without a rhythm or an age", () => {
+    expect(nextFeedingWindow([fedBottle(0)], null, HOUR)).toBeNull();
   });
 });

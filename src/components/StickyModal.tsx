@@ -13,6 +13,7 @@ export function StickyModal({
   okLoading = false,
   showFooter = true,
   tilt = -0.8,
+  dismissible = true,
   onCancel,
   onOk,
   children,
@@ -26,6 +27,7 @@ export function StickyModal({
   okLoading?: boolean;
   showFooter?: boolean;
   tilt?: number;
+  dismissible?: boolean;
   onCancel: () => void;
   onOk?: () => void;
   children: ReactNode;
@@ -35,6 +37,9 @@ export function StickyModal({
       open={open}
       centered
       destroyOnHidden
+      closable={dismissible}
+      keyboard={dismissible}
+      mask={{ closable: dismissible }}
       title={<span className="font-hand text-3xl font-bold">{title}</span>}
       okText={okText}
       classNames={{ container: "sticky-note" }}
@@ -45,7 +50,7 @@ export function StickyModal({
         disabled: okDisabled,
         loading: okLoading,
       }}
-      cancelButtonProps={{ type: "text" }}
+      cancelButtonProps={{ type: "text", className: dismissible ? undefined : "hidden!" }}
       footer={showFooter ? undefined : null}
       onCancel={onCancel}
       onOk={onOk}

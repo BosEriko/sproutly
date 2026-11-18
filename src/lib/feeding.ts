@@ -79,6 +79,19 @@ export function estimateFromRhythm(lastFed: number, rhythm: FeedingRhythm): Feed
   return { lastFedAt: lastFed, from: lastFed + rhythm.minGap, to: lastFed + rhythm.maxGap };
 }
 
+export function nextFeedingWindow(
+  bottles: Pick<Bottle, "events">[],
+  ageDays: number | null,
+  now: number,
+): FeedingEstimate | null {
+  const lastFed = lastFedAt(bottles);
+  if (lastFed === null) return null;
+  const rhythm = feedingRhythm(bottles, now);
+  if (rhythm) return estimateFromRhythm(lastFed, rhythm);
+  if (ageDays === null) return null;
+  return estimateNextFeeding(lastFed, ageDays);
+}
+
 const ML_PER_KG_PER_DAY = 150;
 const MAX_ML_PER_DAY = 960;
 export const MIN_FEED_ML = 10;

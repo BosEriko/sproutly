@@ -4,11 +4,12 @@ import { useEffect, useState, type CSSProperties } from "react";
 import type { User } from "firebase/auth";
 import { Alert, Button } from "antd";
 import { Bath, CalendarDays, Droplet, Milk, Sun, type LucideIcon } from "lucide-react";
+import { AlarmPopup, type Alarm } from "@/components/AlarmPopup";
 import { AuthGate } from "@/components/AuthGate";
 import { BabyCard } from "@/components/BabyCard";
 import { BabyDrawer } from "@/components/BabyDrawer";
 import { BathCard } from "@/components/BathCard";
-import { BottleCard } from "@/components/BottleCard";
+import { BottleCard, formatCountdown } from "@/components/BottleCard";
 import { DiaperCard } from "@/components/DiaperCard";
 import { DayChart } from "@/components/DayChart";
 import { DinoLoader } from "@/components/DinoLoader";
@@ -18,7 +19,7 @@ import { Facts, HistoryItem, RecentCard } from "@/components/History";
 import { END_ICONS } from "@/components/icons";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { Logo } from "@/components/Logo";
-import { NextFeedingCard } from "@/components/NextFeedingCard";
+import { formatDuration, NextFeedingCard } from "@/components/NextFeedingCard";
 import { PenCircle } from "@/components/PenCircle";
 import { SunlightCard } from "@/components/SunlightCard";
 import { ageInDays, type BabyProfile } from "@/lib/baby";
@@ -31,10 +32,10 @@ import {
   type Bottle,
 } from "@/lib/bottles";
 import { recentDayKeys, totalsByDay } from "@/lib/days";
-import { averageIntake, feedingDuration, finishedTitle, idealFeedMl, RHYTHM_DAYS } from "@/lib/feeding";
+import { averageIntake, feedingDuration, finishedTitle, idealFeedMl, nextFeedingWindow, RHYTHM_DAYS } from "@/lib/feeding";
 import { notifyDiscord } from "@/lib/notify";
 import { subscribeProfile } from "@/lib/profile";
-import type { Action } from "@/lib/spoil";
+import { isExpired, type Action } from "@/lib/spoil";
 import { dateKey } from "@/lib/sunlight";
 
 function useNow(intervalMs = 1000) {
@@ -72,6 +73,49 @@ function useTab() {
     } catch {}
   };
   return [tab, choose] as const;
+}
+
+const APP_TITLE = "Sproutly";
+
+function countdownTitle(bottles: Bottle[] | null, profile: BabyProfile | null | undefined, now: number) {
+  if (!bottles) return APP_TITLE;
+  const active = bottles.filter((b) => b.status !== "done");
+  if (active.length > 0) {
+    const spoilsAt = active
+      .filter((b) => !isExpired(b, now) && b.spoilsAt !== null)
+      .map((b) => b.spoilsAt!)
+      .sort((a, b) => a - b)[0];
+    if (spoilsAt !== undefined) return `🍼 Spoils in ${formatCountdown(spoilsAt - now)} · ${APP_TITLE}`;
+    return `🍼 Spoiled · ${APP_TITLE}`;
+  }
+  const next = nextFeedingWindow(bottles, profile?.birthday ? ageInDays(profile.birthday, new Date(now)) : null, now);
+  if (!next) return APP_TITLE;
+  if (now < next.from) return `🍼 Feed in ${formatDuration(next.from - now)} · ${APP_TITLE}`;
+  if (now < next.to) return `🍼 Feed any time now · ${APP_TITLE}`;
+  return `🍼 Feed due now · ${APP_TITLE}`;
+}
+
+function dueAlarms(bottles: Bottle[] | null, profile: BabyProfile | null | undefined, now: number): Alarm[] {
+  if (!bottles) return [];
+  const active = bottles.filter((b) => b.status !== "done");
+  if (active.length > 0) {
+    return active
+      .filter((b) => isExpired(b, now))
+      .map((b) => ({
+        key: `spoiled:${b.id}`,
+        title: "Bottle spoiled",
+        detail: `The bottle made at ${formatTime(b.madeAt)} has spoiled. Time to discard it.`,
+      }));
+  }
+  const next = nextFeedingWindow(bottles, profile?.birthday ? ageInDays(profile.birthday, new Date(now)) : null, now);
+  if (!next || now < next.from) return [];
+  return [
+    {
+      key: `feed:${next.from}`,
+      title: "Feeding time",
+      detail: `${profile?.name || "Your baby"} is likely hungry around ${formatTime(next.from)}–${formatTime(next.to)}.`,
+    },
+  ];
 }
 
 function formatTime(ms: number) {
@@ -146,6 +190,17 @@ function Tracker({ user }: { user: User }) {
   const suggestedMl = idealFeedMl(
     profile?.birthday ? ageInDays(profile.birthday, new Date(now)) : null,
     profile?.weightKg ?? null,
+  );
+
+  const title = countdownTitle(bottles, profile, now);
+  useEffect(() => {
+    document.title = title;
+  }, [title]);
+  useEffect(
+    () => () => {
+      document.title = APP_TITLE;
+    },
+    [],
   );
 
   const closeHistory = () => {
@@ -325,6 +380,8 @@ function Tracker({ user }: { user: User }) {
         onCancel={closeHistory}
         onConfirm={handleEditAmount}
       />
+
+      <AlarmPopup alarms={dueAlarms(bottles, profile, now)} />
 
       <BabyDrawer open={editingProfile} profile={profile ?? null} onClose={() => setEditingProfile(false)} />
     </main>

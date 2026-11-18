@@ -11,7 +11,7 @@ function formatTime(ms: number) {
   return new Date(ms).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
-function formatDuration(ms: number) {
+export function formatDuration(ms: number) {
   const minutes = Math.max(1, Math.round(ms / MINUTE));
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
