@@ -240,26 +240,6 @@ function Tracker({ user }: { user: User }) {
     (b) => b.amountMl ?? 0,
   );
 
-  const bottleSection =
-    bottles === null ? (
-      <DinoLoader label="Finding bottles…" />
-    ) : active.length === 0 ? (
-      profile !== undefined && <NextFeedingCard profile={profile} bottles={bottles} now={now} />
-    ) : (
-      <section className="flex flex-col gap-8 pt-2">
-        {active.map((b, i) => (
-          <BottleCard
-            key={b.id}
-            bottle={b}
-            now={now}
-            busy={busy}
-            tilt={i % 2 === 0 ? -0.8 : 0.8}
-            onAction={(a) => handleAction(b.id, a)}
-          />
-        ))}
-      </section>
-    );
-
   return (
     <main className="mx-auto flex max-w-lg flex-col gap-6 px-4 pt-6 pb-[calc(3rem+env(safe-area-inset-bottom))]">
       <header className="relative">
@@ -267,17 +247,20 @@ function Tracker({ user }: { user: User }) {
           <Logo size={40} />
         </h1>
         {!handheld && (
-          <Button
-            type="text"
-            aria-label="Full screen"
-            title="Full screen"
-            icon={<Maximize size={18} aria-hidden />}
-            onClick={() => {
-              enterFullscreen();
-              setFullscreen(true);
-            }}
-            className="absolute! top-1/2 right-0 -translate-y-1/2"
-          />
+          <div className="absolute inset-y-0 right-0 flex items-center" style={{ rotate: "3deg" }}>
+            <Button
+              type="primary"
+              aria-label="Full screen"
+              title="Full screen"
+              icon={<Maximize size={18} aria-hidden />}
+              onClick={() => {
+                enterFullscreen();
+                setFullscreen(true);
+              }}
+              className="sticky size-11!"
+              style={{ "--sticky": "var(--sticky-yellow)" } as CSSProperties}
+            />
+          </div>
         )}
       </header>
 
@@ -321,7 +304,24 @@ function Tracker({ user }: { user: User }) {
             Made milk
           </Button>
 
-          {bottleSection}
+          {bottles === null ? (
+            <DinoLoader label="Finding bottles…" />
+          ) : active.length === 0 ? (
+            profile !== undefined && <NextFeedingCard profile={profile} bottles={bottles} now={now} />
+          ) : (
+            <section className="flex flex-col gap-8 pt-2">
+              {active.map((b, i) => (
+                <BottleCard
+                  key={b.id}
+                  bottle={b}
+                  now={now}
+                  busy={busy}
+                  tilt={i % 2 === 0 ? -0.8 : 0.8}
+                  onAction={(a) => handleAction(b.id, a)}
+                />
+              ))}
+            </section>
+          )}
 
           {bottles !== null && (
             <RecentCard
@@ -406,9 +406,7 @@ function Tracker({ user }: { user: User }) {
       />
 
       {fullscreen && (
-        <FullscreenView now={now} onExit={exitFullscreen}>
-          {bottleSection}
-        </FullscreenView>
+        <FullscreenView bottles={bottles} profile={profile} now={now} onExit={exitFullscreen} />
       )}
 
       <AlarmPopup alarms={dueAlarms(bottles, profile, now)} />

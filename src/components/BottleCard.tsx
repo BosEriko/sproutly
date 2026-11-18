@@ -6,7 +6,7 @@ import { ACTION_LABELS, allowedActions, isExpired, type Action, type Status } fr
 import type { Bottle } from "@/lib/bottles";
 import { ACTION_ICONS, STATUS_ICONS } from "./icons";
 
-const STATUS_LABELS: Record<Exclude<Status, "done">, string> = {
+export const STATUS_LABELS: Record<Exclude<Status, "done">, string> = {
   room: "Room temp",
   fridge: "In fridge",
   feeding: "Feeding",
@@ -22,6 +22,11 @@ const WARNING_MS = 30 * 60 * 1000;
 
 function formatTime(ms: number) {
   return new Date(ms).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+export function countdownColor(bottle: Bottle, now: number) {
+  if (isExpired(bottle, now)) return "text-danger";
+  return (bottle.spoilsAt ?? now) - now <= WARNING_MS ? "text-warn" : "text-accent";
 }
 
 export function formatCountdown(ms: number) {
@@ -50,8 +55,6 @@ export function BottleCard({
 
   const expired = isExpired(bottle, now);
   const remaining = (bottle.spoilsAt ?? now) - now;
-  const warning = !expired && remaining <= WARNING_MS;
-  const countdownColor = expired ? "text-danger" : warning ? "text-warn" : "text-accent";
   const StatusIcon = STATUS_ICONS[bottle.status];
 
   return (
@@ -66,7 +69,7 @@ export function BottleCard({
       </div>
 
       <div className="my-2 text-center">
-        <p className={`font-hand text-7xl leading-none font-bold tabular-nums ${countdownColor}`}>
+        <p className={`font-hand text-7xl leading-none font-bold tabular-nums ${countdownColor(bottle, now)}`}>
           {expired ? "Spoiled" : formatCountdown(remaining)}
         </p>
         {bottle.spoilsAt && (

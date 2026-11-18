@@ -1,8 +1,13 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, type CSSProperties } from "react";
 import { Button } from "antd";
 import { Minimize } from "lucide-react";
+import { ageInDays, type BabyProfile } from "@/lib/baby";
+import type { Bottle } from "@/lib/bottles";
+import { nextFeedingWindow } from "@/lib/feeding";
+import { isExpired } from "@/lib/spoil";
+import { countdownColor, formatCountdown, STATUS_LABELS } from "./BottleCard";
 
 export function enterFullscreen() {
   if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {});
@@ -40,7 +45,86 @@ function formatDay(ms: number) {
   return new Date(ms).toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" });
 }
 
-export function FullscreenView({ now, onExit, children }: { now: number; onExit: () => void; children: ReactNode }) {
+function Timer({
+  label,
+  value,
+  color,
+  detail,
+  size,
+  tilt = -1,
+}: {
+  label: string;
+  value: string;
+  color: string;
+  detail?: string;
+  size: string;
+  tilt?: number;
+}) {
+  return (
+    <div className="sticky-note px-12 py-8 text-center" style={{ "--sticky": "var(--sticky-yellow)", rotate: `${tilt}deg` } as CSSProperties}>
+      <p className="text-2xl font-semibold text-ink/70">{label}</p>
+      <p className={`font-hand leading-none font-bold tabular-nums ${color}`} style={{ fontSize: size }}>
+        {value}
+      </p>
+      {detail && <p className="mt-2 text-2xl text-ink/70">{detail}</p>}
+    </div>
+  );
+}
+
+function BottleTimers({ bottles, now }: { bottles: Bottle[]; now: number }) {
+  const size = bottles.length === 1 ? "min(22vw, 38vh)" : `min(${22 / bottles.length}vw, ${34 / bottles.length}vh)`;
+  return bottles.map((b, i) => {
+    const expired = isExpired(b, now);
+    return (
+      <Timer
+        key={b.id}
+        label={`${STATUS_LABELS[b.status as keyof typeof STATUS_LABELS]} · Made ${formatClock(b.madeAt)}`}
+        value={expired ? "Spoiled" : formatCountdown((b.spoilsAt ?? now) - now)}
+        color={countdownColor(b, now)}
+        detail={b.spoilsAt ? `${expired ? "Spoiled at" : "Spoils at"} ${formatClock(b.spoilsAt)}` : undefined}
+        size={size}
+        tilt={i % 2 === 0 ? -1 : 1}
+      />
+    );
+  });
+}
+
+function FeedingTimer({ bottles, profile, now }: { bottles: Bottle[]; profile: BabyProfile | null; now: number }) {
+  const next = nextFeedingWindow(bottles, profile?.birthday ? ageInDays(profile.birthday, new Date(now)) : null, now);
+  if (!next) return <Timer label="Next feeding" value="--:--" color="text-muted" detail="No feeding logged yet" size="min(22vw, 38vh)" />;
+  if (now < next.from) {
+    return (
+      <Timer
+        label="Next feeding"
+        value={formatCountdown(next.from - now)}
+        color="text-accent"
+        detail={`Likely hungry around ${formatClock(next.from)}–${formatClock(next.to)}`}
+        size="min(22vw, 38vh)"
+      />
+    );
+  }
+  return (
+    <Timer
+      label="Next feeding"
+      value={now < next.to ? "Any time now" : "Due now"}
+      color={now < next.to ? "text-warn" : "text-danger"}
+      detail={`Last fed ${formatClock(next.lastFedAt)}`}
+      size="min(12vw, 26vh)"
+    />
+  );
+}
+
+export function FullscreenView({
+  bottles,
+  profile,
+  now,
+  onExit,
+}: {
+  bottles: Bottle[] | null;
+  profile: BabyProfile | null | undefined;
+  now: number;
+  onExit: () => void;
+}) {
   useWakeLock();
 
   useEffect(() => {
@@ -65,19 +149,36 @@ export function FullscreenView({ now, onExit, children }: { now: number; onExit:
     onExit();
   };
 
+  const active = bottles?.filter((b) => b.status !== "done") ?? [];
+
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-background bg-[url('/dino-pattern.svg')] bg-size-[280px_280px]">
-      <div className="absolute top-4 right-4">
-        <Button type="text" icon={<Minimize size={18} aria-hidden />} onClick={exit}>
-          Exit
-        </Button>
+    <div className="fixed inset-0 z-50 flex flex-col bg-background bg-[url('/dino-pattern.svg')] bg-size-[280px_280px]">
+      <div className="flex justify-end p-6">
+        <div style={{ rotate: "3deg" }}>
+          <Button
+            type="primary"
+            icon={<Minimize size={18} aria-hidden />}
+            onClick={exit}
+            className="sticky h-11! px-4! font-hand text-xl!"
+            style={{ "--sticky": "var(--sticky-yellow)" } as CSSProperties}
+          >
+            Exit
+          </Button>
+        </div>
       </div>
-      <div className="mx-auto flex min-h-full max-w-lg flex-col justify-center gap-8 px-4 py-16 [zoom:1.35]">
-        <header className="text-center">
-          <p className="font-hand text-6xl leading-none font-bold tabular-nums">{formatClock(now)}</p>
-          <p className="mt-1 text-muted">{formatDay(now)}</p>
-        </header>
-        {children}
+      <div className="flex flex-1 flex-col items-center justify-center gap-10 overflow-y-auto px-6 pb-16">
+        <div
+          className="sticky-note px-6 py-3 text-center"
+          style={{ "--sticky": "var(--paper)", rotate: "1.5deg" } as CSSProperties}
+        >
+          <p className="font-hand text-5xl leading-none font-bold tabular-nums">{formatClock(now)}</p>
+          <p className="mt-1 text-lg text-ink/70">{formatDay(now)}</p>
+        </div>
+        {bottles === null ? null : active.length > 0 ? (
+          <BottleTimers bottles={active} now={now} />
+        ) : (
+          <FeedingTimer bottles={bottles} profile={profile ?? null} now={now} />
+        )}
       </div>
     </div>
   );
