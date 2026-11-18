@@ -3,6 +3,7 @@
 import { AlarmClock } from "lucide-react";
 import { ageInDays, type BabyProfile } from "@/lib/baby";
 import type { Bottle } from "@/lib/bottles";
+import { formatCountdown } from "./BottleCard";
 import { estimateFromRhythm, estimateNextFeeding, feedingInterval, feedingRhythm, lastFedAt, RHYTHM_DAYS } from "@/lib/feeding";
 
 const MINUTE = 60 * 1000;
@@ -11,7 +12,7 @@ function formatTime(ms: number) {
   return new Date(ms).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
-export function formatDuration(ms: number) {
+function formatDuration(ms: number) {
   const minutes = Math.max(1, Math.round(ms / MINUTE));
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
@@ -76,7 +77,7 @@ export function NextFeedingCard({ profile, bottles, now }: { profile: BabyProfil
   let detail: string;
   let tone: string;
   if (now < from) {
-    headline = `in ${formatDuration(from - now)}`;
+    headline = `in ${formatCountdown(from - now)}`;
     detail = `Likely hungry around ${formatTime(from)}–${formatTime(to)}`;
     tone = "text-accent";
   } else if (now < to) {
@@ -91,7 +92,7 @@ export function NextFeedingCard({ profile, bottles, now }: { profile: BabyProfil
 
   return (
     <Shell>
-      <p className={`mt-1 font-hand text-5xl leading-tight font-bold ${tone}`}>{headline}</p>
+      <p className={`mt-1 font-hand text-5xl leading-tight font-bold tabular-nums ${tone}`}>{headline}</p>
       <p>{detail}</p>
       <p className="mt-2 text-xs text-muted">
         Last fed {formatTime(lastFed)} · {basis} Hunger cues come first; this is only a guide.

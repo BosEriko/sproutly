@@ -19,7 +19,7 @@ import { Facts, HistoryItem, RecentCard } from "@/components/History";
 import { END_ICONS } from "@/components/icons";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { Logo } from "@/components/Logo";
-import { formatDuration, NextFeedingCard } from "@/components/NextFeedingCard";
+import { NextFeedingCard } from "@/components/NextFeedingCard";
 import { PenCircle } from "@/components/PenCircle";
 import { SunlightCard } from "@/components/SunlightCard";
 import { ageInDays, type BabyProfile } from "@/lib/baby";
@@ -90,7 +90,7 @@ function countdownTitle(bottles: Bottle[] | null, profile: BabyProfile | null | 
   }
   const next = nextFeedingWindow(bottles, profile?.birthday ? ageInDays(profile.birthday, new Date(now)) : null, now);
   if (!next) return APP_TITLE;
-  if (now < next.from) return `🍼 Feed in ${formatDuration(next.from - now)} · ${APP_TITLE}`;
+  if (now < next.from) return `🍼 Feed in ${formatCountdown(next.from - now)} · ${APP_TITLE}`;
   if (now < next.to) return `🍼 Feed any time now · ${APP_TITLE}`;
   return `🍼 Feed due now · ${APP_TITLE}`;
 }
@@ -105,6 +105,7 @@ function dueAlarms(bottles: Bottle[] | null, profile: BabyProfile | null | undef
         key: `spoiled:${b.id}`,
         title: "Bottle spoiled",
         detail: `The bottle made at ${formatTime(b.madeAt)} has spoiled. Time to discard it.`,
+        sound: "urgent" as const,
       }));
   }
   const next = nextFeedingWindow(bottles, profile?.birthday ? ageInDays(profile.birthday, new Date(now)) : null, now);
@@ -114,6 +115,7 @@ function dueAlarms(bottles: Bottle[] | null, profile: BabyProfile | null | undef
       key: `feed:${next.from}`,
       title: "Feeding time",
       detail: `${profile?.name || "Your baby"} is likely hungry around ${formatTime(next.from)}–${formatTime(next.to)}.`,
+      sound: "gentle",
     },
   ];
 }

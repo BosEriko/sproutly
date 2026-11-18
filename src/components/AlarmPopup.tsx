@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { AlarmClock } from "lucide-react";
-import { resumeAlarmAudio, startAlarm, stopAlarm } from "@/lib/alarmSound";
+import { resumeAlarmAudio, startAlarm, stopAlarm, type AlarmSound } from "@/lib/alarmSound";
 import { StickyModal } from "./StickyModal";
 
 export interface Alarm {
   key: string;
   title: string;
   detail: string;
+  sound: AlarmSound;
 }
 
 const STOPPED_KEY = "sproutly:alarms-stopped";
@@ -40,11 +41,12 @@ export function AlarmPopup({ alarms }: { alarms: Alarm[] }) {
 
   const ringing = stopped ? alarms.filter((a) => !stopped.includes(a.key)) : [];
   const open = ringing.length > 0;
+  const sound: AlarmSound | null = !open ? null : ringing.some((a) => a.sound === "urgent") ? "urgent" : "gentle";
 
   useEffect(() => {
-    if (open) startAlarm();
+    if (sound) startAlarm(sound);
     else stopAlarm();
-  }, [open]);
+  }, [sound]);
 
   const stop = () => {
     const next = [...(stopped ?? []), ...ringing.map((a) => a.key)].slice(-MAX_STOPPED);
