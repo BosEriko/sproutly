@@ -19,7 +19,7 @@ export function feedingInterval(ageDays: number): FeedingInterval {
   return { minHours: 4, maxHours: 5 };
 }
 
-function fedAt(bottle: Pick<Bottle, "events">): number | null {
+export function fedAt(bottle: Pick<Bottle, "events">): number | null {
   const feed = bottle.events.find((e) => e.type === "feed") ?? bottle.events.find((e) => e.type === "finish");
   return feed ? feed.at : null;
 }

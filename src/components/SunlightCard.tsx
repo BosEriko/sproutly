@@ -6,8 +6,10 @@ import { Button } from "antd";
 import { ArrowDown, ArrowUp, Check, Sun } from "lucide-react";
 import { dateKey, formatDateKey, type SunlightDay } from "@/lib/sunlight";
 import { recentDayKeys, totalsByDay } from "@/lib/days";
+import { perDay } from "@/lib/trends";
 import { deleteSunlight, logSunlight, subscribeSunlight, updateSunlight } from "@/lib/sunlightDays";
 import { DayChart } from "./DayChart";
+import { Trends } from "./Trends";
 import { EntryMenu } from "./EntryMenu";
 import { HistoryItem, RecentCard } from "./History";
 import { SunlightDialog } from "./SunlightDialog";
@@ -42,6 +44,8 @@ export function SunlightCard({ user, now }: { user: User; now: number }) {
   const today = dateKey(now);
   const doneToday = days?.some((d) => d.date === today) ?? false;
   const chartDays = recentDayKeys(now);
+  const week = (days ?? []).filter((d) => chartDays.includes(d.date));
+  const weekMinutes = (pick: (d: SunlightDay) => number | null) => week.reduce((sum, d) => sum + (pick(d) ?? 0), 0);
   const label = (date: string) => (date === today ? "Today" : formatDateKey(date));
 
   return (
@@ -72,6 +76,15 @@ export function SunlightCard({ user, now }: { user: User; now: number }) {
             series={[
               { label: "Front", color: "var(--sticky-sun)", values: totalsByDay(days ?? [], chartDays, (d) => d.date, (d) => d.frontMin ?? 0) },
               { label: "Back", color: "var(--sticky-lavender)", values: totalsByDay(days ?? [], chartDays, (d) => d.date, (d) => d.backMin ?? 0) },
+            ]}
+          />
+        }
+        trends={
+          <Trends
+            stats={[
+              { label: "Days out", value: `${week.length}/${chartDays.length}` },
+              { label: "Front/day", value: `${perDay(weekMinutes((d) => d.frontMin))}m` },
+              { label: "Back/day", value: `${perDay(weekMinutes((d) => d.backMin))}m` },
             ]}
           />
         }

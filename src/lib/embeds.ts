@@ -1,4 +1,4 @@
-import { DIAPER_LABELS, type DiaperKind } from "./diaper";
+import { DIAPER_LABELS, isPoopSize, POOP_SIZE_LABELS, type DiaperKind } from "./diaper";
 import { formatDateKey } from "./sunlight";
 
 const DIAPER_TITLES: Record<DiaperKind, string> = {
@@ -13,13 +13,14 @@ const DIAPER_COLORS: Record<DiaperKind, number> = {
   both: 0xb8a2e3,
 };
 
-export function diaperEmbed(kind: DiaperKind, unix: number) {
+export function diaperEmbed(kind: DiaperKind, unix: number, size?: unknown) {
   return {
     title: DIAPER_TITLES[kind],
     color: DIAPER_COLORS[kind],
     fields: [
       { name: "Changed", value: `<t:${unix}:t> (<t:${unix}:R>)`, inline: true },
       { name: "Type", value: DIAPER_LABELS[kind], inline: true },
+      ...(isPoopSize(size) ? [{ name: "Size", value: POOP_SIZE_LABELS[size], inline: true }] : []),
     ],
   };
 }

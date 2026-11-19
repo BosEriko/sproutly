@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { Button } from "antd";
-import { ChartColumn, List, type LucideIcon } from "lucide-react";
+import { ChartColumn, List, TrendingUp, type LucideIcon } from "lucide-react";
 import { HoldHint, HoldRow } from "./HoldRow";
 import { PenCircle } from "./PenCircle";
 
@@ -66,11 +66,12 @@ export function HistoryItem({
   );
 }
 
-type View = "recent" | "graphs";
+type View = "recent" | "graphs" | "trends";
 
 const VIEWS: { value: View; label: string; icon: LucideIcon; tilt: number }[] = [
   { value: "recent", label: "Recent", icon: List, tilt: -0.8 },
   { value: "graphs", label: "Graphs", icon: ChartColumn, tilt: 0.8 },
+  { value: "trends", label: "Trends", icon: TrendingUp, tilt: -0.5 },
 ];
 
 const VIEW_KEY = "sproutly:view";
@@ -100,6 +101,7 @@ export function RecentCard({
   empty,
   error,
   graph,
+  trends,
   children,
 }: {
   tape: string;
@@ -109,6 +111,7 @@ export function RecentCard({
   empty: string;
   error?: string | null;
   graph: ReactNode;
+  trends: ReactNode;
   children?: ReactNode[];
 }) {
   const [view, setView] = useView();
@@ -116,7 +119,7 @@ export function RecentCard({
 
   return (
     <div className="flex flex-col gap-6">
-      <div role="tablist" aria-label="View" className="grid grid-cols-2 gap-3">
+      <div role="tablist" aria-label="View" className="grid grid-cols-3 gap-3">
         {VIEWS.map(({ value, label, icon: Icon, tilt: noteTilt }) => (
           <div key={value} className="relative" style={{ rotate: `${noteTilt}deg` }}>
             <Button
@@ -126,7 +129,7 @@ export function RecentCard({
               aria-selected={view === value}
               icon={<Icon size={18} aria-hidden />}
               onClick={() => setView(value)}
-              className={`sticky h-12! font-hand text-2xl! ${view === value ? "sticky-active" : "sticky-idle"}`}
+              className={`sticky h-12! gap-1! px-2! font-hand text-xl! ${view === value ? "sticky-active" : "sticky-idle"}`}
               style={{ "--sticky": color } as CSSProperties}
             >
               {label}
@@ -143,6 +146,8 @@ export function RecentCard({
         {error && <p className="mt-2 text-sm text-danger">{error}</p>}
 
         {view === "graphs" && graph}
+
+        {view === "trends" && trends}
 
         {view === "recent" && hasItems && (
           <>

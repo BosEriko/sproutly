@@ -7,8 +7,10 @@ import { Bath as BathIcon, CalendarDays } from "lucide-react";
 import { daysAgoLabel, type Bath } from "@/lib/bath";
 import { recentDayKeys, totalsByDay } from "@/lib/days";
 import { dateKey } from "@/lib/sunlight";
+import { hourlyLikelihood, inLastWeek } from "@/lib/trends";
 import { deleteBath, logBath, subscribeBaths, updateBath } from "@/lib/baths";
 import { DayChart } from "./DayChart";
+import { Trends } from "./Trends";
 import { EntryMenu } from "./EntryMenu";
 import { HistoryItem, RecentCard } from "./History";
 import { WhenDialog } from "./WhenDialog";
@@ -48,6 +50,9 @@ export function BathCard({ user, now }: { user: User; now: number }) {
   }
 
   const chartDays = recentDayKeys(now);
+  const bathTimes = (baths ?? []).map((b) => b.at);
+  const gaps = bathTimes.slice(1).map((at, i) => bathTimes[i] - at);
+  const averageGapDays = gaps.length ? gaps.reduce((sum, g) => sum + g, 0) / gaps.length / 86400000 : null;
 
   const close = () => {
     setMode(null);
@@ -82,6 +87,16 @@ export function BathCard({ user, now }: { user: User; now: number }) {
             series={[
               { label: "Baths", color: "var(--sticky-lavender)", values: totalsByDay(baths ?? [], chartDays, (b) => dateKey(b.at)) },
             ]}
+          />
+        }
+        trends={
+          <Trends
+            stats={[
+              { label: "This week", value: String(bathTimes.filter((at) => inLastWeek(at, now)).length) },
+              { label: "Usual gap", value: averageGapDays === null ? "—" : `${Math.round(averageGapDays * 10) / 10}d` },
+              { label: "Last bath", value: baths?.[0] ? daysAgoLabel(baths[0].at, now) : "—" },
+            ]}
+            hours={[{ label: "Baths", color: "var(--sticky-lavender)", likelihood: hourlyLikelihood(bathTimes, now) }]}
           />
         }
       >

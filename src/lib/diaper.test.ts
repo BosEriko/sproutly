@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { changesToday, countDiapers, isDiaperKind, type DiaperChange } from "./diaper";
+import { changesToday, countDiapers, hasPoop, isDiaperKind, isPoopSize, type DiaperChange } from "./diaper";
 
 const at = (h: number, day = 16) => new Date(2026, 10, day, h).getTime();
 const change = (kind: DiaperChange["kind"], time: number): DiaperChange => ({ id: `${kind}-${time}`, kind, at: time });
@@ -26,5 +26,22 @@ describe("isDiaperKind", () => {
     expect(isDiaperKind("both")).toBe(true);
     expect(isDiaperKind("sticky")).toBe(false);
     expect(isDiaperKind(undefined)).toBe(false);
+  });
+});
+
+describe("isPoopSize", () => {
+  it("only accepts small, medium and large", () => {
+    expect(isPoopSize("small")).toBe(true);
+    expect(isPoopSize("large")).toBe(true);
+    expect(isPoopSize("huge")).toBe(false);
+    expect(isPoopSize(undefined)).toBe(false);
+  });
+});
+
+describe("hasPoop", () => {
+  it("is true for dirty and both", () => {
+    expect(hasPoop("wet")).toBe(false);
+    expect(hasPoop("dirty")).toBe(true);
+    expect(hasPoop("both")).toBe(true);
   });
 });

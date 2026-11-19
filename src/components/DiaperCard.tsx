@@ -4,13 +4,28 @@ import { useEffect, useState, type CSSProperties, type SVGProps } from "react";
 import type { User } from "firebase/auth";
 import { Button } from "antd";
 import { Clock, Droplet } from "lucide-react";
-import { changesToday, countDiapers, DIAPER_KINDS, DIAPER_LABELS, type DiaperChange, type DiaperKind } from "@/lib/diaper";
+import {
+  changesToday,
+  countDiapers,
+  DIAPER_KINDS,
+  DIAPER_LABELS,
+  hasPoop,
+  POOP_SIZE_HINTS,
+  POOP_SIZE_LABELS,
+  POOP_SIZES,
+  type DiaperChange,
+  type DiaperKind,
+  type PoopSize,
+} from "@/lib/diaper";
 import { recentDayKeys, totalsByDay } from "@/lib/days";
 import { dateKey } from "@/lib/sunlight";
+import { hourlyLikelihood, inLastWeek, perDay } from "@/lib/trends";
 import { deleteDiaper, logDiaper, subscribeDiapers, updateDiaper } from "@/lib/diapers";
 import { DayChart } from "./DayChart";
+import { Trends } from "./Trends";
 import { EntryMenu } from "./EntryMenu";
 import { Facts, HistoryItem, RecentCard } from "./History";
+import { StickyModal } from "./StickyModal";
 import { WhenDialog } from "./WhenDialog";
 
 function DirtyIcon({ size = 16, ...props }: SVGProps<SVGSVGElement> & { size?: number }) {
@@ -64,13 +79,44 @@ const STICKY: Record<DiaperKind, string> = {
   both: "var(--sticky-pink)",
 };
 
+const SIZE_TILTS = [-0.6, 0.5, -0.4];
+
+function SizePicker({ value, onChange }: { value: PoopSize; onChange: (size: PoopSize) => void }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="text-sm font-semibold">Size</span>
+      <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Size">
+        {POOP_SIZES.map((size, i) => (
+          <Button
+            key={size}
+            type="primary"
+            role="radio"
+            aria-checked={value === size}
+            onClick={() => onChange(size)}
+            className={`sticky h-12! font-hand text-xl! ${value === size ? "sticky-active" : "sticky-idle"}`}
+            style={{ rotate: `${SIZE_TILTS[i]}deg`, "--sticky": "var(--paper)" } as CSSProperties}
+          >
+            {POOP_SIZE_LABELS[size]}
+          </Button>
+        ))}
+      </div>
+      <p className="text-sm text-muted" aria-live="polite">
+        {POOP_SIZE_HINTS[value]}
+      </p>
+    </div>
+  );
+}
+
+const sizedLabel = (c: DiaperChange) => (c.size ? `${DIAPER_LABELS[c.kind]} · ${POOP_SIZE_LABELS[c.size]}` : DIAPER_LABELS[c.kind]);
+
 export function DiaperCard({ user, now }: { user: User; now: number }) {
   const [changes, setChanges] = useState<DiaperChange[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<DiaperChange | null>(null);
-  const [mode, setMode] = useState<"menu" | "edit" | null>(null);
+  const [mode, setMode] = useState<"log" | "menu" | "edit" | null>(null);
   const [editKind, setEditKind] = useState<DiaperKind>("wet");
+  const [size, setSize] = useState<PoopSize>("medium");
 
   useEffect(() => subscribeDiapers(setChanges, (e) => setError(e.message)), []);
 
@@ -96,6 +142,9 @@ export function DiaperCard({ user, now }: { user: User; now: number }) {
   const counts = countDiapers(today);
   const last = changes?.[0];
   const chartDays = recentDayKeys(now);
+  const week = (changes ?? []).filter((c) => inLastWeek(c.at, now));
+  const wetTimes = (changes ?? []).filter((c) => c.kind !== "dirty").map((c) => c.at);
+  const dirtyTimes = (changes ?? []).filter((c) => c.kind !== "wet").map((c) => c.at);
 
   return (
     <>
@@ -107,7 +156,15 @@ export function DiaperCard({ user, now }: { user: User; now: number }) {
             size="large"
             disabled={busy}
             icon={<KindIcon kind={kind} size={22} />}
-            onClick={() => run(() => logDiaper(kind, user)).catch(() => {})}
+            onClick={() => {
+              if (!hasPoop(kind)) {
+                run(() => logDiaper(kind, user)).catch(() => {});
+                return;
+              }
+              setEditKind(kind);
+              setSize("medium");
+              setMode("log");
+            }}
             className="sticky h-20! flex-col! gap-0.5! font-hand text-2xl!"
             style={{ rotate: `${TILTS[i]}deg`, "--sticky": STICKY[kind] } as CSSProperties}
           >
@@ -145,18 +202,32 @@ export function DiaperCard({ user, now }: { user: User; now: number }) {
             }))}
           />
         }
+        trends={
+          <Trends
+            stats={[
+              { label: "Changes/day", value: String(perDay(week.length)) },
+              { label: "Wet/day", value: String(perDay(week.filter((c) => c.kind !== "dirty").length)) },
+              { label: "Dirty/day", value: String(perDay(week.filter((c) => c.kind !== "wet").length)) },
+            ]}
+            hours={[
+              { label: "Wet", color: STICKY.wet, likelihood: hourlyLikelihood(wetTimes, now) },
+              { label: "Dirty", color: STICKY.dirty, likelihood: hourlyLikelihood(dirtyTimes, now) },
+            ]}
+          />
+        }
       >
         {today.slice(0, 20).map((c) => (
           <HistoryItem
             key={c.id}
             icon={<KindIcon kind={c.kind} size={15} />}
-            title={DIAPER_LABELS[c.kind]}
+            title={sizedLabel(c)}
             meta={formatTime(c.at)}
             color={STICKY[c.kind]}
-            label={`${DIAPER_LABELS[c.kind]} at ${formatTime(c.at)}`}
+            label={`${sizedLabel(c)} at ${formatTime(c.at)}`}
             onHold={() => {
               setSelected(c);
               setEditKind(c.kind);
+              setSize(c.size ?? "medium");
               setMode("menu");
             }}
           />
@@ -165,7 +236,7 @@ export function DiaperCard({ user, now }: { user: User; now: number }) {
 
       <EntryMenu
         open={mode === "menu"}
-        title={selected ? `${DIAPER_LABELS[selected.kind]} · ${formatTime(selected.at)}` : ""}
+        title={selected ? `${sizedLabel(selected)} · ${formatTime(selected.at)}` : ""}
         onClose={close}
         onEdit={() => setMode("edit")}
         onDelete={() => (selected ? run(() => deleteDiaper(selected.id, user)) : Promise.resolve())}
@@ -180,7 +251,7 @@ export function DiaperCard({ user, now }: { user: User; now: number }) {
         onCancel={close}
         onSave={(at) => {
           if (!selected) return;
-          run(() => updateDiaper(selected.id, editKind, at, user))
+          run(() => updateDiaper(selected.id, editKind, at, user, hasPoop(editKind) ? size : undefined))
             .then(close)
             .catch(() => {});
         }}
@@ -200,7 +271,26 @@ export function DiaperCard({ user, now }: { user: User; now: number }) {
             </Button>
           ))}
         </div>
+        {hasPoop(editKind) && <SizePicker value={size} onChange={setSize} />}
       </WhenDialog>
+
+      <StickyModal
+        open={mode === "log"}
+        title={editKind === "both" ? "Wet + dirty diaper" : "Dirty diaper"}
+        color={STICKY[editKind]}
+        okText="Log"
+        okLoading={busy}
+        onCancel={close}
+        onOk={() =>
+          run(() => logDiaper(editKind, user, size))
+            .then(close)
+            .catch(() => {})
+        }
+      >
+        <div className="pt-2">
+          <SizePicker value={size} onChange={setSize} />
+        </div>
+      </StickyModal>
     </>
   );
 }

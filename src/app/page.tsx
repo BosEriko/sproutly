@@ -20,9 +20,10 @@ import { Facts, HistoryItem, RecentCard } from "@/components/History";
 import { END_ICONS } from "@/components/icons";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { Logo } from "@/components/Logo";
-import { NextFeedingCard } from "@/components/NextFeedingCard";
+import { formatDuration, NextFeedingCard } from "@/components/NextFeedingCard";
 import { PenCircle } from "@/components/PenCircle";
 import { SunlightCard } from "@/components/SunlightCard";
+import { Trends } from "@/components/Trends";
 import { ageInDays, type BabyProfile } from "@/lib/baby";
 import {
   createBottle,
@@ -33,12 +34,22 @@ import {
   type Bottle,
 } from "@/lib/bottles";
 import { recentDayKeys, totalsByDay } from "@/lib/days";
-import { averageIntake, feedingDuration, finishedTitle, idealFeedMl, nextFeedingWindow, RHYTHM_DAYS } from "@/lib/feeding";
+import {
+  averageIntake,
+  fedAt,
+  feedingDuration,
+  feedingRhythm,
+  finishedTitle,
+  idealFeedMl,
+  nextFeedingWindow,
+  RHYTHM_DAYS,
+} from "@/lib/feeding";
 import { HANDHELD } from "@/lib/install-prompt";
 import { notifyDiscord } from "@/lib/notify";
 import { subscribeProfile } from "@/lib/profile";
 import { isExpired, type Action } from "@/lib/spoil";
 import { dateKey } from "@/lib/sunlight";
+import { hourlyLikelihood, inLastWeek, perDay } from "@/lib/trends";
 import { useMediaQuery } from "@/lib/use-media-query";
 
 function useNow(intervalMs = 1000) {
@@ -239,6 +250,15 @@ function Tracker({ user }: { user: User }) {
     },
     (b) => b.amountMl ?? 0,
   );
+  const feedTimes = (bottles ?? []).map(fedAt).filter((at): at is number => at !== null);
+  const rhythm = bottles ? feedingRhythm(bottles, now) : null;
+  const weekDurations = (bottles ?? [])
+    .filter((b) => {
+      const at = fedAt(b);
+      return at !== null && inLastWeek(at, now);
+    })
+    .map(feedingDuration)
+    .filter((d): d is number => d !== null);
 
   return (
     <main className="mx-auto flex max-w-lg flex-col gap-6 px-4 pt-6 pb-[calc(3rem+env(safe-area-inset-bottom))]">
@@ -345,6 +365,24 @@ function Tracker({ user }: { user: User }) {
                   today={dateKey(now)}
                   unit="ml"
                   series={[{ label: "Milk", color: "var(--sticky-mint)", values: mlPerDay }]}
+                />
+              }
+              trends={
+                <Trends
+                  stats={[
+                    { label: "Feeds/day", value: String(perDay(feedTimes.filter((at) => inLastWeek(at, now)).length)) },
+                    {
+                      label: "Usual gap",
+                      value: rhythm ? `${formatDuration(rhythm.minGap)}–${formatDuration(rhythm.maxGap)}` : "—",
+                    },
+                    {
+                      label: "Feed length",
+                      value: weekDurations.length
+                        ? formatDuration(weekDurations.reduce((sum, d) => sum + d, 0) / weekDurations.length)
+                        : "—",
+                    },
+                  ]}
+                  hours={[{ label: "Feedings", color: "var(--sticky-mint)", likelihood: hourlyLikelihood(feedTimes, now) }]}
                 />
               }
             >
