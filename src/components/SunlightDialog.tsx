@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { MAX_SUN_MINUTES } from "@/lib/sunlight";
+import dayjs from "dayjs";
+import { dateKey, MAX_SUN_MINUTES } from "@/lib/sunlight";
 import { NumberWheel } from "./NumberWheel";
+import { StickyDatePicker } from "./StickyDatePicker";
 import { StickyModal } from "./StickyModal";
 
 const MINUTES = Array.from({ length: MAX_SUN_MINUTES + 1 }, (_, i) => i);
@@ -13,6 +15,7 @@ export function SunlightDialog({
   title,
   initialFront,
   initialBack,
+  initialDate,
   saving,
   onCancel,
   onSave,
@@ -21,14 +24,16 @@ export function SunlightDialog({
   title: string;
   initialFront: number | null;
   initialBack: number | null;
+  initialDate?: string;
   saving: boolean;
   onCancel: () => void;
-  onSave: (frontMin: number, backMin: number) => void;
+  onSave: (frontMin: number, backMin: number, date?: string) => void;
 }) {
   const startFront = initialFront ?? DEFAULT_MINUTES;
   const startBack = initialBack ?? DEFAULT_MINUTES;
   const [front, setFront] = useState(startFront);
   const [back, setBack] = useState(startBack);
+  const [date, setDate] = useState(initialDate);
   const [lastOpen, setLastOpen] = useState(open);
 
   if (open !== lastOpen) {
@@ -36,6 +41,7 @@ export function SunlightDialog({
     if (open) {
       setFront(startFront);
       setBack(startBack);
+      setDate(initialDate);
     }
   }
 
@@ -48,8 +54,20 @@ export function SunlightDialog({
       okDisabled={front + back === 0}
       okLoading={saving}
       onCancel={onCancel}
-      onOk={() => onSave(front, back)}
+      onOk={() => onSave(front, back, date)}
     >
+      {date && (
+        <label className="mb-4 flex flex-col gap-1 pt-2">
+          <span className="text-sm font-semibold">Day</span>
+          <StickyDatePicker
+            format="ddd, MMM D"
+            allowClear={false}
+            value={dayjs(date)}
+            onChange={(value) => value && setDate(dateKey(value.valueOf()))}
+            disabledDate={(d) => d.isAfter(dayjs(), "day")}
+          />
+        </label>
+      )}
       <div className="grid grid-cols-2 gap-2">
         {[
           { label: "Front", value: front, initial: startFront, onChange: setFront },

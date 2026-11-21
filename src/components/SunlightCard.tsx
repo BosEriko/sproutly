@@ -118,12 +118,13 @@ export function SunlightCard({ user, now }: { user: User; now: number }) {
         title={mode === "edit" && selected ? `Sunlight · ${label(selected.date)}` : "Morning sunlight"}
         initialFront={mode === "edit" ? (selected?.frontMin ?? null) : null}
         initialBack={mode === "edit" ? (selected?.backMin ?? null) : null}
+        initialDate={mode === "edit" ? selected?.date : undefined}
         saving={busy}
         onCancel={close}
-        onSave={(frontMin, backMin) => {
+        onSave={(frontMin, backMin, date) => {
           const task =
             mode === "edit" && selected
-              ? () => updateSunlight(selected.date, frontMin, backMin, user)
+              ? () => updateSunlight(selected.date, frontMin, backMin, user, date)
               : () => logSunlight(today, frontMin, backMin, user);
           run(task)
             .then(close)

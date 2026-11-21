@@ -45,6 +45,19 @@ function formatDay(ms: number) {
   return new Date(ms).toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" });
 }
 
+function Digits({ value }: { value: string }) {
+  if (!/^[\d:]+$/.test(value)) return value;
+  return [...value].map((char, i) => (
+    <span
+      key={i}
+      className="relative inline-block text-center"
+      style={char === ":" ? { width: "0.26em", left: "-0.08em" } : { width: "0.5em", left: "-0.1em" }}
+    >
+      {char}
+    </span>
+  ));
+}
+
 function Timer({
   label,
   value,
@@ -61,10 +74,13 @@ function Timer({
   tilt?: number;
 }) {
   return (
-    <div className="sticky-note px-12 py-8 text-center" style={{ "--sticky": "var(--sticky-yellow)", rotate: `${tilt}deg` } as CSSProperties}>
+    <div
+      className="sticky-note px-12 py-8 text-center"
+      style={{ "--sticky": "var(--sticky-yellow)", rotate: `${tilt}deg`, minWidth: `calc(${size} * 3.2 + 6rem)` } as CSSProperties}
+    >
       <p className="text-2xl font-semibold text-ink/70">{label}</p>
-      <p className={`font-hand leading-none font-bold tabular-nums ${color}`} style={{ fontSize: size }}>
-        {value}
+      <p className={`font-hand leading-none font-bold whitespace-nowrap ${color}`} style={{ fontSize: size }}>
+        <Digits value={value} />
       </p>
       {detail && <p className="mt-2 text-2xl text-ink/70">{detail}</p>}
     </div>

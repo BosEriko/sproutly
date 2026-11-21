@@ -12,6 +12,7 @@ import {
 } from "firebase/firestore";
 import type { User } from "firebase/auth";
 import { apiRequest } from "./api";
+import type { BottleEdit } from "./bottleEdit";
 import { BOTTLES_COLLECTION } from "./collections";
 import { clientDb } from "./firebase";
 import { applyAction, newBottle, type Action, type BottleState } from "./spoil";
@@ -109,6 +110,7 @@ export function deleteDoneBottle(id: string, user: User): Promise<void> {
   return apiRequest(user, `/api/bottles/${id}`, { method: "DELETE" });
 }
 
-export function updateBottleAmount(id: string, amountMl: number, user: User): Promise<void> {
-  return apiRequest(user, `/api/bottles/${id}`, { method: "PATCH", body: JSON.stringify({ amountMl }) });
+export function editDoneBottle(id: string, edit: BottleEdit & { amountMl?: number }, user: User): Promise<void> {
+  const { by, byName } = eventFor("made", user, 0);
+  return apiRequest(user, `/api/bottles/${id}`, { method: "PATCH", body: JSON.stringify({ ...edit, by, byName }) });
 }

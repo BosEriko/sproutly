@@ -97,6 +97,44 @@
       filter 200ms ease;
   }
 
+  .sticky-picker-popup .ant-picker-panel-container {
+    border-radius: 2px 2px 24px 2px / 2px 2px 4px 2px;
+    background: linear-gradient(
+      175deg,
+      color-mix(in srgb, var(--sticky) 85%, #ffffff) 0%,
+      var(--sticky) 60%,
+      color-mix(in srgb, var(--sticky) 97%, #000000) 100%
+    );
+    box-shadow:
+      0 1px 1px rgb(60 50 80 / 0.06),
+      0 6px 12px -4px rgb(60 50 80 / 0.16),
+      8px 12px 14px -10px rgb(60 50 80 / 0.3);
+    max-width: calc(100vw - 16px);
+    max-height: calc(100dvh - 16px);
+    overflow: auto;
+  }
+
+  .sticky-picker-popup .ant-picker-panel,
+  .sticky-picker-popup .ant-picker-time-panel-column,
+  .sticky-picker-popup .ant-picker-footer {
+    background: transparent;
+  }
+
+  @media (max-width: 520px) {
+    .sticky-picker-popup .ant-picker-datetime-panel {
+      flex-direction: column;
+    }
+
+    .sticky-picker-popup .ant-picker-datetime-panel .ant-picker-time-panel {
+      border-inline-start: none;
+      border-top: 1px solid var(--line);
+    }
+
+    .sticky-picker-popup .ant-picker-datetime-panel .ant-picker-time-panel .ant-picker-content {
+      height: 168px;
+    }
+  }
+
   .sticky.sticky-idle.sticky-idle {
     background: color-mix(in srgb, var(--sticky) 45%, #ffffff);
     color: var(--muted);

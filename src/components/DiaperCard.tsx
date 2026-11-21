@@ -200,6 +200,7 @@ export function DiaperCard({ user, now }: { user: User; now: number }) {
                 (c) => dateKey(c.at),
               ),
             }))}
+            entries={(changes ?? []).map((c) => ({ at: c.at, color: STICKY[c.kind], tag: sizedLabel(c) }))}
           />
         }
         trends={
@@ -245,7 +246,7 @@ export function DiaperCard({ user, now }: { user: User; now: number }) {
       <WhenDialog
         open={mode === "edit"}
         title="Edit diaper change"
-        color="var(--sticky-blue)"
+        color="var(--sticky-lavender)"
         initialAt={selected?.at ?? now}
         saving={busy}
         onCancel={close}
@@ -279,6 +280,7 @@ export function DiaperCard({ user, now }: { user: User; now: number }) {
         title={editKind === "both" ? "Wet + dirty diaper" : "Dirty diaper"}
         color={STICKY[editKind]}
         okText="Log"
+        okColor="var(--sticky-mint)"
         okLoading={busy}
         onCancel={close}
         onOk={() =>

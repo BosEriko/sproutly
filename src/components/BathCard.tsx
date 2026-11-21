@@ -87,6 +87,7 @@ export function BathCard({ user, now }: { user: User; now: number }) {
             series={[
               { label: "Baths", color: "var(--sticky-lavender)", values: totalsByDay(baths ?? [], chartDays, (b) => dateKey(b.at)) },
             ]}
+            entries={(baths ?? []).map((b) => ({ at: b.at, color: "var(--sticky-lavender)", tag: "Bath" }))}
           />
         }
         trends={

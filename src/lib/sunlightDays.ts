@@ -28,8 +28,11 @@ export function logSunlight(date: string, frontMin: number, backMin: number, use
   return apiRequest(user, "/api/sunlight", { method: "POST", body: JSON.stringify({ date, frontMin, backMin }) });
 }
 
-export function updateSunlight(date: string, frontMin: number, backMin: number, user: User) {
-  return apiRequest(user, `/api/sunlight/${date}`, { method: "PATCH", body: JSON.stringify({ frontMin, backMin }) });
+export function updateSunlight(date: string, frontMin: number, backMin: number, user: User, newDate = date) {
+  return apiRequest(user, `/api/sunlight/${date}`, {
+    method: "PATCH",
+    body: JSON.stringify({ frontMin, backMin, date: newDate }),
+  });
 }
 
 export function deleteSunlight(date: string, user: User) {

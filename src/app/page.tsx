@@ -10,8 +10,9 @@ import { BabyCard } from "@/components/BabyCard";
 import { BabyDrawer } from "@/components/BabyDrawer";
 import { BathCard } from "@/components/BathCard";
 import { BottleCard, formatCountdown } from "@/components/BottleCard";
+import { BottleEditDialog } from "@/components/BottleEditDialog";
 import { DiaperCard } from "@/components/DiaperCard";
-import { DayChart } from "@/components/DayChart";
+import { DayChart, type DayEntry } from "@/components/DayChart";
 import { DinoLoader } from "@/components/DinoLoader";
 import { EntryMenu } from "@/components/EntryMenu";
 import { FinishDialog } from "@/components/FinishDialog";
@@ -23,16 +24,18 @@ import { Logo } from "@/components/Logo";
 import { formatDuration, NextFeedingCard } from "@/components/NextFeedingCard";
 import { PenCircle } from "@/components/PenCircle";
 import { SunlightCard } from "@/components/SunlightCard";
+import { TimeDotChart, type TimeDot } from "@/components/TimeDotChart";
 import { Trends } from "@/components/Trends";
 import { ageInDays, type BabyProfile } from "@/lib/baby";
 import {
   createBottle,
   deleteDoneBottle,
   subscribeBottles,
+  editDoneBottle,
   updateBottle,
-  updateBottleAmount,
   type Bottle,
 } from "@/lib/bottles";
+import type { BottleEdit } from "@/lib/bottleEdit";
 import { recentDayKeys, totalsByDay } from "@/lib/days";
 import {
   averageIntake,
@@ -227,12 +230,12 @@ function Tracker({ user }: { user: User }) {
     setPicked(null);
   };
 
-  const handleEditAmount = (amountMl: number) => {
+  const handleEditBottle = (edit: BottleEdit & { amountMl?: number }) => {
     const bottle = picked;
     closeHistory();
     if (!bottle) return;
     return run(async () => {
-      await updateBottleAmount(bottle.id, amountMl, user);
+      await editDoneBottle(bottle.id, edit, user);
       await notifyDiscord(user, bottle.id);
     });
   };
@@ -251,6 +254,20 @@ function Tracker({ user }: { user: User }) {
     (b) => b.amountMl ?? 0,
   );
   const feedTimes = (bottles ?? []).map(fedAt).filter((at): at is number => at !== null);
+  const feedDots = (bottles ?? []).flatMap((b): TimeDot[] => {
+    const at = fedAt(b) ?? b.events.find((e) => e.type === "discard")?.at;
+    if (at === undefined) return [];
+    const discarded = b.endReason === "discarded";
+    const detail = discarded ? "Discarded" : b.amountMl ? `${b.amountMl}ml` : b.status === "done" ? "Finished" : "Feeding";
+    return [
+      {
+        at,
+        color: discarded ? "var(--sticky-pink)" : "var(--sticky-mint)",
+        label: `${formatDateTime(at)} · ${detail}`,
+        value: !discarded && b.amountMl ? String(b.amountMl) : undefined,
+      },
+    ];
+  });
   const rhythm = bottles ? feedingRhythm(bottles, now) : null;
   const weekDurations = (bottles ?? [])
     .filter((b) => {
@@ -365,6 +382,18 @@ function Tracker({ user }: { user: User }) {
                   today={dateKey(now)}
                   unit="ml"
                   series={[{ label: "Milk", color: "var(--sticky-mint)", values: mlPerDay }]}
+                  entries={feedDots.map((d): DayEntry => ({ ...d, tag: d.value ? `${d.value}ml` : undefined }))}
+                  times={
+                    <TimeDotChart
+                      days={chartDays}
+                      today={dateKey(now)}
+                      dots={feedDots}
+                      legend={[
+                        { label: "Fed", color: "var(--sticky-mint)" },
+                        { label: "Discarded", color: "var(--sticky-pink)" },
+                      ]}
+                    />
+                  }
                 />
               }
               trends={
@@ -428,19 +457,18 @@ function Tracker({ user }: { user: User }) {
       <EntryMenu
         open={historyMode === "menu"}
         title={picked ? `Bottle · ${formatDateTime(picked.madeAt)}` : ""}
-        canEdit={picked?.endReason === "finished"}
         onClose={closeHistory}
         onEdit={() => setHistoryMode("edit")}
         onDelete={() => (picked ? run(() => deleteDoneBottle(picked.id, user)) : Promise.resolve())}
       />
 
-      <FinishDialog
+      <BottleEditDialog
         open={historyMode === "edit"}
-        name={profile?.name || "your baby"}
+        bottle={picked}
         suggestedMl={suggestedMl}
-        initialMl={picked?.amountMl ?? suggestedMl}
+        saving={busy}
         onCancel={closeHistory}
-        onConfirm={handleEditAmount}
+        onSave={handleEditBottle}
       />
 
       {fullscreen && (

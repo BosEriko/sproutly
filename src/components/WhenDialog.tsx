@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { DatePicker } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
+import { StickyDatePicker } from "./StickyDatePicker";
 import { StickyModal } from "./StickyModal";
 
 export function WhenDialog({
@@ -38,16 +38,13 @@ export function WhenDialog({
         {children}
         <label className="flex flex-col gap-1">
           <span className="text-sm font-semibold">When</span>
-          <DatePicker
+          <StickyDatePicker
             showTime={{ format: "h:mm A", use12Hours: true }}
             format="MMM D, h:mm A"
-            size="large"
-            inputReadOnly
             allowClear={false}
             value={when}
             onChange={(value) => value && setWhen(value)}
             disabledDate={(date) => date.isAfter(dayjs(), "day")}
-            className="w-full"
           />
         </label>
       </div>
