@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { Button, Tag } from "antd";
 import { Clock } from "lucide-react";
 import { ACTION_LABELS, allowedActions, isExpired, type Action, type Status } from "@/lib/spoil";
@@ -16,6 +17,14 @@ const TAPE: Record<Exclude<Status, "done">, string> = {
   room: "var(--tape-room)",
   fridge: "var(--tape-fridge)",
   feeding: "var(--tape-feeding)",
+};
+
+export const ACTION_STICKY: Record<Action, string> = {
+  fridge_in: "var(--sticky-blue)",
+  fridge_out: "var(--sticky-sun)",
+  feed: "var(--sticky-mint)",
+  finish: "var(--sticky-lavender)",
+  discard: "var(--sticky-pink)",
 };
 
 const WARNING_MS = 30 * 60 * 1000;
@@ -80,22 +89,27 @@ export function BottleCard({
         )}
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        {allowedActions(bottle, now).map((action) => {
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        {allowedActions(bottle, now).map((action, i) => {
           const Icon = ACTION_ICONS[action];
           return (
-            <Button
+            <div
               key={action}
-              size="large"
-              disabled={busy}
-              danger={action === "discard"}
-              type={expired ? "primary" : "default"}
-              icon={<Icon size={16} aria-hidden />}
-              onClick={() => onAction(action)}
               className={expired ? "col-span-2" : undefined}
+              style={{ rotate: `${i % 2 === 0 ? -1 : 1}deg` }}
             >
-              {ACTION_LABELS[action]}
-            </Button>
+              <Button
+                type="primary"
+                block
+                disabled={busy}
+                icon={<Icon size={18} aria-hidden />}
+                onClick={() => onAction(action)}
+                className="sticky h-12! font-hand text-xl!"
+                style={{ "--sticky": ACTION_STICKY[action] } as CSSProperties}
+              >
+                {ACTION_LABELS[action]}
+              </Button>
+            </div>
           );
         })}
       </div>

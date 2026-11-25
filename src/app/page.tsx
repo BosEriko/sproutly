@@ -11,6 +11,7 @@ import { BabyDrawer } from "@/components/BabyDrawer";
 import { BathCard } from "@/components/BathCard";
 import { BottleCard, formatCountdown } from "@/components/BottleCard";
 import { BottleEditDialog } from "@/components/BottleEditDialog";
+import { BurpCard } from "@/components/BurpCard";
 import { DiaperCard } from "@/components/DiaperCard";
 import { DayChart, type DayEntry } from "@/components/DayChart";
 import { DinoLoader } from "@/components/DinoLoader";
@@ -39,6 +40,7 @@ import type { BottleEdit } from "@/lib/bottleEdit";
 import { recentDayKeys, totalsByDay } from "@/lib/days";
 import {
   averageIntake,
+  burpEndsAt,
   fedAt,
   feedingDuration,
   feedingRhythm,
@@ -241,6 +243,7 @@ function Tracker({ user }: { user: User }) {
   };
 
   const active = bottles?.filter((b) => b.status !== "done") ?? [];
+  const burpUntil = bottles ? burpEndsAt(bottles, now) : null;
   const history = bottles?.filter((b) => b.status === "done").slice(0, 20) ?? [];
   const intake = bottles ? averageIntake(bottles, now) : null;
   const chartDays = recentDayKeys(now);
@@ -333,6 +336,7 @@ function Tracker({ user }: { user: User }) {
             size="large"
             block
             loading={busy}
+            disabled={bottles === null || active.length > 0}
             icon={<Milk size={30} aria-hidden />}
             onClick={handleMade}
             className="sticky h-24! rotate-[-0.6deg] font-hand text-4xl!"
@@ -341,10 +345,12 @@ function Tracker({ user }: { user: User }) {
             Made milk
           </Button>
 
+          {burpUntil !== null && <BurpCard endsAt={burpUntil} now={now} />}
+
           {bottles === null ? (
             <DinoLoader label="Finding bottles…" />
           ) : active.length === 0 ? (
-            profile !== undefined && <NextFeedingCard profile={profile} bottles={bottles} now={now} />
+            profile !== undefined && burpUntil === null && <NextFeedingCard profile={profile} bottles={bottles} now={now} />
           ) : (
             <section className="flex flex-col gap-8 pt-2">
               {active.map((b, i) => (
@@ -472,7 +478,15 @@ function Tracker({ user }: { user: User }) {
       />
 
       {fullscreen && (
-        <FullscreenView bottles={bottles} profile={profile} now={now} onExit={exitFullscreen} />
+        <FullscreenView
+          bottles={bottles}
+          profile={profile}
+          now={now}
+          busy={busy}
+          onMade={handleMade}
+          onAction={handleAction}
+          onExit={exitFullscreen}
+        />
       )}
 
       <AlarmPopup alarms={dueAlarms(bottles, profile, now)} />

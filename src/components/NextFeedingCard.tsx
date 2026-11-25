@@ -50,7 +50,7 @@ export function NextFeedingCard({ profile, bottles, now }: { profile: BabyProfil
     return (
       <Shell>
         <p className="mt-2 text-muted">
-          Tap <strong>Started feeding</strong> on a bottle and the next feeding time will show here.
+          Tap <strong>Feeding</strong> on a bottle and the next feeding time will show here.
         </p>
       </Shell>
     );

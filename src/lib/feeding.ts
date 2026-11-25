@@ -152,3 +152,15 @@ export function averageIntake(bottles: Pick<Bottle, "events" | "amountMl">[], no
   const total = amounts.reduce((sum, ml) => sum + ml, 0);
   return { perDay: Math.round(total / RHYTHM_DAYS), perFeed: Math.round(total / amounts.length) };
 }
+
+export const BURP_MS = 15 * 60 * 1000;
+
+export function burpEndsAt(bottles: Pick<Bottle, "events">[], now: number): number | null {
+  let latest: number | null = null;
+  for (const bottle of bottles) {
+    const finish = bottle.events.find((e) => e.type === "finish");
+    if (finish && finish.at <= now && (latest === null || finish.at > latest)) latest = finish.at;
+  }
+  if (latest === null || now >= latest + BURP_MS) return null;
+  return latest + BURP_MS;
+}

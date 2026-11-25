@@ -2,12 +2,13 @@
 
 import { useEffect, type CSSProperties } from "react";
 import { Button } from "antd";
-import { Minimize } from "lucide-react";
+import { Milk, Minimize } from "lucide-react";
 import { ageInDays, type BabyProfile } from "@/lib/baby";
 import type { Bottle } from "@/lib/bottles";
-import { nextFeedingWindow } from "@/lib/feeding";
-import { isExpired } from "@/lib/spoil";
-import { countdownColor, formatCountdown, STATUS_LABELS } from "./BottleCard";
+import { burpEndsAt, nextFeedingWindow } from "@/lib/feeding";
+import { ACTION_LABELS, allowedActions, isExpired, type Action } from "@/lib/spoil";
+import { ACTION_STICKY, countdownColor, formatCountdown, STATUS_LABELS } from "./BottleCard";
+import { ACTION_ICONS } from "./icons";
 
 export function enterFullscreen() {
   if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {});
@@ -65,6 +66,7 @@ function Timer({
   detail,
   size,
   tilt = -1,
+  sticky = "var(--sticky-yellow)",
 }: {
   label: string;
   value: string;
@@ -72,11 +74,12 @@ function Timer({
   detail?: string;
   size: string;
   tilt?: number;
+  sticky?: string;
 }) {
   return (
     <div
       className="sticky-note px-12 py-8 text-center"
-      style={{ "--sticky": "var(--sticky-yellow)", rotate: `${tilt}deg`, minWidth: `calc(${size} * 3.2 + 6rem)` } as CSSProperties}
+      style={{ "--sticky": sticky, rotate: `${tilt}deg`, minWidth: `calc(${size} * 3.2 + 6rem)` } as CSSProperties}
     >
       <p className="text-2xl font-semibold text-ink/70">{label}</p>
       <p className={`font-hand leading-none font-bold whitespace-nowrap ${color}`} style={{ fontSize: size }}>
@@ -87,20 +90,50 @@ function Timer({
   );
 }
 
-function BottleTimers({ bottles, now }: { bottles: Bottle[]; now: number }) {
+function BottleTimers({
+  bottles,
+  now,
+  busy,
+  onAction,
+}: {
+  bottles: Bottle[];
+  now: number;
+  busy: boolean;
+  onAction: (id: string, action: Action) => void;
+}) {
   const size = bottles.length === 1 ? "min(22vw, 38vh)" : `min(${22 / bottles.length}vw, ${34 / bottles.length}vh)`;
   return bottles.map((b, i) => {
     const expired = isExpired(b, now);
     return (
-      <Timer
-        key={b.id}
-        label={`${STATUS_LABELS[b.status as keyof typeof STATUS_LABELS]} · Made ${formatClock(b.madeAt)}`}
-        value={expired ? "Spoiled" : formatCountdown((b.spoilsAt ?? now) - now)}
-        color={countdownColor(b, now)}
-        detail={b.spoilsAt ? `${expired ? "Spoiled at" : "Spoils at"} ${formatClock(b.spoilsAt)}` : undefined}
-        size={size}
-        tilt={i % 2 === 0 ? -1 : 1}
-      />
+      <div key={b.id} className="flex flex-col items-center gap-6">
+        <Timer
+          label={`${STATUS_LABELS[b.status as keyof typeof STATUS_LABELS]} · Made ${formatClock(b.madeAt)}`}
+          value={expired ? "Spoiled" : formatCountdown((b.spoilsAt ?? now) - now)}
+          color={countdownColor(b, now)}
+          detail={b.spoilsAt ? `${expired ? "Spoiled at" : "Spoils at"} ${formatClock(b.spoilsAt)}` : undefined}
+          size={size}
+          tilt={i % 2 === 0 ? -1 : 1}
+        />
+        <div className="flex flex-wrap justify-center gap-4">
+          {allowedActions(b, now).map((action, j) => {
+            const Icon = ACTION_ICONS[action];
+            return (
+              <div key={action} style={{ rotate: `${j % 2 === 0 ? -1.5 : 1.5}deg` }}>
+                <Button
+                  type="primary"
+                  disabled={busy}
+                  icon={<Icon size={22} aria-hidden />}
+                  onClick={() => onAction(b.id, action)}
+                  className="sticky h-16! px-6! font-hand text-2xl!"
+                  style={{ "--sticky": ACTION_STICKY[action] } as CSSProperties}
+                >
+                  {ACTION_LABELS[action]}
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     );
   });
 }
@@ -134,11 +167,17 @@ export function FullscreenView({
   bottles,
   profile,
   now,
+  busy,
+  onMade,
+  onAction,
   onExit,
 }: {
   bottles: Bottle[] | null;
   profile: BabyProfile | null | undefined;
   now: number;
+  busy: boolean;
+  onMade: () => void;
+  onAction: (id: string, action: Action) => void;
   onExit: () => void;
 }) {
   useWakeLock();
@@ -166,6 +205,7 @@ export function FullscreenView({
   };
 
   const active = bottles?.filter((b) => b.status !== "done") ?? [];
+  const burpUntil = bottles ? burpEndsAt(bottles, now) : null;
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-background bg-[url('/dino-pattern.svg')] bg-size-[280px_280px]">
@@ -190,10 +230,35 @@ export function FullscreenView({
           <p className="font-hand text-5xl leading-none font-bold tabular-nums">{formatClock(now)}</p>
           <p className="mt-1 text-lg text-ink/70">{formatDay(now)}</p>
         </div>
+        {burpUntil !== null && (
+          <Timer
+            label="Burping time"
+            value={formatCountdown(burpUntil - now)}
+            color="text-accent"
+            detail={`Keep upright and burp until ${formatClock(burpUntil)}`}
+            size={active.length > 0 ? "min(11vw, 17vh)" : "min(22vw, 38vh)"}
+            tilt={1}
+            sticky="var(--sticky-lavender)"
+          />
+        )}
         {bottles === null ? null : active.length > 0 ? (
-          <BottleTimers bottles={active} now={now} />
-        ) : (
+          <BottleTimers bottles={active} now={now} busy={busy} onAction={onAction} />
+        ) : burpUntil === null ? (
           <FeedingTimer bottles={bottles} profile={profile ?? null} now={now} />
+        ) : null}
+        {bottles !== null && active.length === 0 && (
+          <div className="-mt-4" style={{ rotate: "-1.5deg" }}>
+            <Button
+              type="primary"
+              loading={busy}
+              icon={<Milk size={22} aria-hidden />}
+              onClick={onMade}
+              className="sticky h-16! px-6! font-hand text-2xl!"
+              style={{ "--sticky": "var(--sticky-mint)" } as CSSProperties}
+            >
+              Made milk
+            </Button>
+          </div>
         )}
       </div>
     </div>

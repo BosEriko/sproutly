@@ -21,9 +21,9 @@ export const FRIDGE_LIMIT = 24 * HOUR;
 export const FEEDING_LIMIT = 1 * HOUR;
 
 export const ACTION_LABELS: Record<Action, string> = {
-  fridge_in: "Put in fridge",
+  fridge_in: "Fridged",
   fridge_out: "Take out of fridge",
-  feed: "Started feeding",
+  feed: "Feeding",
   finish: "Finished",
   discard: "Discard",
 };

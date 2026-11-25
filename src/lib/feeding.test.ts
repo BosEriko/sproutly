@@ -3,6 +3,7 @@ import { ageInDays } from "./baby";
 import type { BottleEvent } from "./bottles";
 import {
   averageIntake,
+  burpEndsAt,
   estimateFromRhythm,
   estimateNextFeeding,
   feedingDuration,
@@ -184,5 +185,14 @@ describe("nextFeedingWindow", () => {
 
   it("is null without a rhythm or an age", () => {
     expect(nextFeedingWindow([fedBottle(0)], null, HOUR)).toBeNull();
+  });
+});
+
+describe("burpEndsAt", () => {
+  it("runs for 15 minutes after the latest finish", () => {
+    const finished = { events: [event("feed", 0), event("finish", HOUR)] };
+    expect(burpEndsAt([finished], HOUR + 60000)).toBe(HOUR + 15 * 60000);
+    expect(burpEndsAt([finished], HOUR + 15 * 60000)).toBeNull();
+    expect(burpEndsAt([{ events: [event("feed", 0)] }], 60000)).toBeNull();
   });
 });
