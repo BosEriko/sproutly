@@ -124,7 +124,6 @@ function dueAlarms(bottles: Bottle[] | null, profile: BabyProfile | null | undef
         key: `spoiled:${b.id}`,
         title: "Bottle spoiled",
         detail: `The bottle made at ${formatTime(b.madeAt)} has spoiled. Time to discard it.`,
-        sound: "urgent" as const,
       }));
   }
   const next = nextFeedingWindow(bottles, profile?.birthday ? ageInDays(profile.birthday, new Date(now)) : null, now);
@@ -134,7 +133,6 @@ function dueAlarms(bottles: Bottle[] | null, profile: BabyProfile | null | undef
       key: `feed:${next.from}`,
       title: "Feeding time",
       detail: `${profile?.name || "Your baby"} is likely hungry around ${formatTime(next.from)}–${formatTime(next.to)}.`,
-      sound: "gentle",
     },
   ];
 }
