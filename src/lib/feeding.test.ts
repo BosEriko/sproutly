@@ -189,10 +189,10 @@ describe("nextFeedingWindow", () => {
 });
 
 describe("burpEndsAt", () => {
-  it("runs for 30 minutes after the latest finish", () => {
+  it("runs for 15 minutes after the latest finish", () => {
     const finished = { events: [event("feed", 0), event("finish", HOUR)] };
-    expect(burpEndsAt([finished], HOUR + 60000)).toBe(HOUR + 30 * 60000);
-    expect(burpEndsAt([finished], HOUR + 30 * 60000)).toBeNull();
+    expect(burpEndsAt([finished], HOUR + 60000)).toBe(HOUR + 15 * 60000);
+    expect(burpEndsAt([finished], HOUR + 15 * 60000)).toBeNull();
     expect(burpEndsAt([{ events: [event("feed", 0)] }], 60000)).toBeNull();
   });
 });
