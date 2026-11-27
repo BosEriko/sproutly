@@ -14,6 +14,7 @@ import {
   idealFeedMl,
   lastFedAt,
   nextFeedingWindow,
+  shouldMakeMilk,
 } from "./feeding";
 
 const HOUR = 60 * 60 * 1000;
@@ -194,5 +195,13 @@ describe("burpEndsAt", () => {
     expect(burpEndsAt([finished], HOUR + 60000)).toBe(HOUR + 15 * 60000);
     expect(burpEndsAt([finished], HOUR + 15 * 60000)).toBeNull();
     expect(burpEndsAt([{ events: [event("feed", 0)] }], 60000)).toBeNull();
+  });
+});
+
+describe("shouldMakeMilk", () => {
+  it("turns on once 30 minutes or less remain", () => {
+    expect(shouldMakeMilk({ from: HOUR }, 0)).toBe(false);
+    expect(shouldMakeMilk({ from: HOUR }, HOUR / 2)).toBe(true);
+    expect(shouldMakeMilk({ from: HOUR }, 2 * HOUR)).toBe(true);
   });
 });

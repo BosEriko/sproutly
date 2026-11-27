@@ -5,7 +5,7 @@ import { Button } from "antd";
 import { Milk, Minimize } from "lucide-react";
 import { ageInDays, type BabyProfile } from "@/lib/baby";
 import type { Bottle } from "@/lib/bottles";
-import { burpEndsAt, nextFeedingWindow } from "@/lib/feeding";
+import { burpEndsAt, nextFeedingWindow, shouldMakeMilk } from "@/lib/feeding";
 import { ACTION_LABELS, allowedActions, isExpired, type Action } from "@/lib/spoil";
 import { ACTION_STICKY, countdownColor, formatCountdown, STATUS_LABELS } from "./BottleCard";
 import { ACTION_ICONS } from "./icons";
@@ -67,6 +67,7 @@ function Timer({
   size,
   tilt = -1,
   sticky = "var(--sticky-yellow)",
+  corner,
 }: {
   label: string;
   value: string;
@@ -75,12 +76,18 @@ function Timer({
   size: string;
   tilt?: number;
   sticky?: string;
+  corner?: string;
 }) {
   return (
     <div
-      className="sticky-note px-12 py-8 text-center"
+      className="sticky-note relative px-12 py-8 text-center"
       style={{ "--sticky": sticky, rotate: `${tilt}deg`, minWidth: `calc(${size} * 3.2 + 6rem)` } as CSSProperties}
     >
+      {corner && (
+        <span className="tape-label" style={{ fontSize: `calc(${size} * 0.16)`, padding: "0.1em 0.7em", top: "-0.5em", right: "-0.6em" }}>
+          {corner}
+        </span>
+      )}
       <p className="text-2xl font-semibold text-ink/70">{label}</p>
       <p className={`font-hand leading-none font-bold whitespace-nowrap ${color}`} style={{ fontSize: size }}>
         <Digits value={value} />
@@ -141,6 +148,7 @@ function BottleTimers({
 function FeedingTimer({ bottles, profile, now }: { bottles: Bottle[]; profile: BabyProfile | null; now: number }) {
   const next = nextFeedingWindow(bottles, profile?.birthday ? ageInDays(profile.birthday, new Date(now)) : null, now);
   if (!next) return <Timer label="Next feeding" value="--:--" color="text-muted" detail="No feeding logged yet" size="min(22vw, 38vh)" />;
+  const corner = shouldMakeMilk(next, now) ? "Make milk?" : undefined;
   if (now < next.from) {
     return (
       <Timer
@@ -149,6 +157,7 @@ function FeedingTimer({ bottles, profile, now }: { bottles: Bottle[]; profile: B
         color="text-accent"
         detail={`Likely hungry around ${formatClock(next.from)}–${formatClock(next.to)}`}
         size="min(22vw, 38vh)"
+        corner={corner}
       />
     );
   }
@@ -159,6 +168,7 @@ function FeedingTimer({ bottles, profile, now }: { bottles: Bottle[]; profile: B
       color={now < next.to ? "text-warn" : "text-danger"}
       detail={`Last fed ${formatClock(next.lastFedAt)}`}
       size="min(12vw, 26vh)"
+      corner={corner}
     />
   );
 }

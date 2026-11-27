@@ -75,6 +75,27 @@
     transition: rotate 250ms ease;
   }
 
+  .tape-label {
+    position: absolute;
+    top: -10px;
+    right: -14px;
+    padding: 2px 14px;
+    rotate: 8deg;
+    --tooth: 0.4em;
+    background:
+      linear-gradient(180deg, rgb(255 255 255 / 0.45), rgb(255 255 255 / 0) 35%, rgb(0 0 0 / 0) 70%, rgb(0 0 0 / 0.06)),
+      repeating-linear-gradient(90deg, rgb(255 255 255 / 0.08) 0 2px, rgb(255 255 255 / 0) 2px 5px),
+      rgb(190 230 197 / 0.72);
+    font-family: var(--font-hand);
+    font-weight: 700;
+    color: color-mix(in srgb, var(--ink) 82%, transparent);
+    white-space: nowrap;
+    mask:
+      conic-gradient(from -135deg at right, #0000, #000 1deg 89deg, #0000 90deg) right / 51% var(--tooth) repeat-y,
+      conic-gradient(from 45deg at left, #0000, #000 1deg 89deg, #0000 90deg) left / 51% var(--tooth) repeat-y;
+    pointer-events: none;
+  }
+
   .sticky.sticky,
   .sticky-note.sticky-note {
     border-color: transparent;

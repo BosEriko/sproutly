@@ -164,3 +164,9 @@ export function burpEndsAt(bottles: Pick<Bottle, "events">[], now: number): numb
   if (latest === null || now >= latest + BURP_MS) return null;
   return latest + BURP_MS;
 }
+
+export const MAKE_MILK_LEAD_MS = 30 * 60 * 1000;
+
+export function shouldMakeMilk(next: Pick<FeedingEstimate, "from">, now: number): boolean {
+  return next.from - now <= MAKE_MILK_LEAD_MS;
+}

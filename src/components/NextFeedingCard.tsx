@@ -4,7 +4,7 @@ import { AlarmClock } from "lucide-react";
 import { ageInDays, type BabyProfile } from "@/lib/baby";
 import type { Bottle } from "@/lib/bottles";
 import { formatCountdown } from "./BottleCard";
-import { estimateFromRhythm, estimateNextFeeding, feedingInterval, feedingRhythm, lastFedAt, RHYTHM_DAYS } from "@/lib/feeding";
+import { estimateFromRhythm, estimateNextFeeding, feedingInterval, feedingRhythm, lastFedAt, RHYTHM_DAYS, shouldMakeMilk } from "@/lib/feeding";
 
 const MINUTE = 60 * 1000;
 
@@ -20,10 +20,11 @@ export function formatDuration(ms: number) {
   return m ? `${h}h ${m}m` : `${h}h`;
 }
 
-function Shell({ children }: { children: React.ReactNode }) {
+function Shell({ children, nudge = false }: { children: React.ReactNode; nudge?: boolean }) {
   return (
     <section className="paper -rotate-[0.6deg] rounded-sm px-5 pt-7 pb-4">
       <span className="tape" style={{ background: "rgb(217 205 243 / 0.85)" }} />
+      {nudge && <span className="tape-label text-xl">Make milk?</span>}
       <h2 className="flex items-center gap-2 text-sm font-semibold text-muted">
         <AlarmClock size={15} aria-hidden />
         Next feeding
@@ -91,7 +92,7 @@ export function NextFeedingCard({ profile, bottles, now }: { profile: BabyProfil
   }
 
   return (
-    <Shell>
+    <Shell nudge={shouldMakeMilk({ from }, now)}>
       <p className={`mt-1 font-hand text-5xl leading-tight font-bold tabular-nums ${tone}`}>{headline}</p>
       <p>{detail}</p>
       <p className="mt-2 text-xs text-muted">
