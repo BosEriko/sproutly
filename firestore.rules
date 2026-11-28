@@ -33,6 +33,11 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    match /apps/sproutly/profileHistory/{entryId} {
+      allow read: if isAllowed();
+      allow write: if false;
+    }
+
     match /apps/sproutly/profile/baby {
       allow read: if isAllowed();
       allow write: if isAllowed()

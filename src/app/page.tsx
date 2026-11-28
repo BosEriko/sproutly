@@ -303,7 +303,13 @@ function Tracker({ user }: { user: User }) {
       </header>
 
       {profile !== undefined && (
-        <BabyCard profile={profile} now={now} onEdit={() => setEditingProfile(true)} />
+        <BabyCard
+          profile={profile}
+          now={now}
+          mlPerFeed={intake?.perFeed ?? null}
+          feedGap={rhythm ? `${formatDuration(rhythm.minGap)}–${formatDuration(rhythm.maxGap)}` : null}
+          onEdit={() => setEditingProfile(true)}
+        />
       )}
 
       <nav className="grid grid-cols-4 gap-2" aria-label="Sections">
@@ -489,7 +495,7 @@ function Tracker({ user }: { user: User }) {
 
       <AlarmPopup alarms={dueAlarms(bottles, profile, now)} />
 
-      <BabyDrawer open={editingProfile} profile={profile ?? null} onClose={() => setEditingProfile(false)} />
+      <BabyDrawer open={editingProfile} user={user} profile={profile ?? null} onClose={() => setEditingProfile(false)} />
     </main>
   );
 }

@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import type { User } from "firebase/auth";
 import { Alert, Button, DatePicker, Drawer, Form, Input, InputNumber } from "antd";
 import dayjs, { type Dayjs } from "dayjs";
 import type { BabyProfile } from "@/lib/baby";
-import { saveProfile } from "@/lib/profile";
+import { saveProfile, subscribeProfileHistory } from "@/lib/profile";
+import { describeChange, type ProfileHistoryEntry } from "@/lib/profileHistory";
 
 interface Values {
   name: string;
@@ -13,28 +15,43 @@ interface Values {
   heightCm?: number | null;
 }
 
+function formatDateTime(ms: number) {
+  return new Date(ms).toLocaleString([], { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
 export function BabyDrawer({
   open,
+  user,
   profile,
   onClose,
 }: {
   open: boolean;
+  user: User;
   profile: BabyProfile | null;
   onClose: () => void;
 }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [history, setHistory] = useState<ProfileHistoryEntry[] | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    return subscribeProfileHistory(setHistory, (e) => setError(e.message));
+  }, [open]);
 
   async function handleFinish(values: Values) {
     setSaving(true);
     setError(null);
     try {
-      await saveProfile({
-        name: values.name.trim(),
-        birthday: values.birthday ? values.birthday.format("YYYY-MM-DD") : null,
-        weightKg: values.weightKg ?? null,
-        heightCm: values.heightCm ?? null,
-      });
+      await saveProfile(
+        {
+          name: values.name.trim(),
+          birthday: values.birthday ? values.birthday.format("YYYY-MM-DD") : null,
+          weightKg: values.weightKg ?? null,
+          heightCm: values.heightCm ?? null,
+        },
+        user,
+      );
       onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save");
@@ -90,6 +107,24 @@ export function BabyDrawer({
           Save
         </Button>
       </Form>
+      {history && history.length > 0 && (
+        <section className="mx-auto mt-8 max-w-lg">
+          <h3 className="mb-2 text-sm font-semibold text-muted">Changes</h3>
+          <ul className="flex flex-col divide-y divide-line">
+            {history.map((entry) => (
+              <li key={entry.id} className="py-2 text-sm">
+                <p className="text-xs text-muted">
+                  {formatDateTime(entry.at)}
+                  {entry.byName && ` · ${entry.byName}`}
+                </p>
+                {entry.changes.map((change) => (
+                  <p key={change.field}>{describeChange(change)}</p>
+                ))}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </Drawer>
   );
 }
